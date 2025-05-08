@@ -25,8 +25,9 @@
     },
     "antiLink": {
         "enabled": true,
-        "action": "delete",
+        "action": "mute",
         "muteDuration": 10,
+        "maxWarnings": 3,
         "whitelist": []
     },
     "antiBots": {
@@ -39,15 +40,15 @@
     },
     "limits": {
         "enabled": true,
-        "channelCreate": 3,
-        "channelDelete": 3,
-        "roleCreate": 3,
-        "roleDelete": 3,
-        "kick": 3,
-        "ban": 3,
+        "channelCreate": 2,
+        "channelDelete": 2,
+        "roleCreate": 2,
+        "roleDelete": 2,
+        "kick": 2,
+        "ban": 2,
         "massTag": 3,
         "timeWindow": 10000,
-        "action": "kick"
+        "action": "ban"
     },
     "permGuard": {
         "enabled": true,

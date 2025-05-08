@@ -183,9 +183,37 @@ module.exports = {
             const member = await guild.members.fetch(userId).catch(() => null);
             if (!member) return;
             
-            // Skip if member is owner or admin
-            if (member.permissions.has('ADMINISTRATOR') || config.owners.includes(userId)) {
+            // Yüksek yetkili bile olsa limitleri aşarsa durdur!
+            // SADECE sunucu sahibi ve botun sahibi atlanır
+            if (guild.ownerId === userId || (config.owners && config.owners.includes(userId))) {
+                logger.warn(`Limit aşımı atlandı: ${userId} (sunucu sahibi veya bot sahibi)`);
                 return;
+            }
+            
+            // Yöneticilerin işlemleri de durdurulur - sunucu güvenliği için kritik!
+            logger.warn(`YÖNETİCİ YETKİ AŞIMI: ${userId} kullanıcısı ${actionName} limitini aştı!`);
+            
+            // Yüksek tehlike durumunda: Yönetici yetkilerini kaldır
+            try {
+                if (member.permissions.has('ADMINISTRATOR')) {
+                    logger.security('ADMIN_LIMIT', `${member.user.tag} admin yetkileri kaldırılıyor - tehlikeli işlem tespit edildi`);
+                    
+                    // Admin yetkisi veren tüm rolleri bul ve kaldır
+                    const adminRoles = member.roles.cache.filter(role => 
+                        role.permissions.has('ADMINISTRATOR') || 
+                        role.permissions.has('BAN_MEMBERS') || 
+                        role.permissions.has('MANAGE_CHANNELS') || 
+                        role.permissions.has('MANAGE_GUILD') || 
+                        role.permissions.has('MANAGE_ROLES')
+                    );
+                    
+                    for (const [id, role] of adminRoles) {
+                        await member.roles.remove(role, 'Güvenlik ihlali - yetki kötüye kullanımı');
+                        logger.security('YETKILI_ROL_KALDIRILDI', `${member.user.tag} kullanıcısından ${role.name} rolü alındı`);
+                    }
+                }
+            } catch (error) {
+                logger.error(`Yönetici yetkilerini kaldırırken hata: ${error.message}`);
             }
             
             // Take action based on config

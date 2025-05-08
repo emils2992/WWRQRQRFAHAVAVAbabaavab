@@ -193,15 +193,31 @@ module.exports = {
             // Delete the message
             await message.delete();
             
-            // If this is the first offense in the last 30 minutes, just warn
-            if (!warnedUsers.has(message.author.id)) {
-                warnedUsers.set(message.author.id, Date.now());
+            // Link uyarı sayısı yönetimi - 3 kez tekrarlanırsa ceza uygulanır
+            // Kullanıcı daha önce uyarılmışsa uyarı sayısını artır, yoksa 1 olarak başlat
+            
+            const MAX_WARNINGS = config.antiLink.maxWarnings || 3; // En fazla uyarı sayısı (3. uyarıdan sonra mute)
+            const uyariSuresi = 30 * 60 * 1000; // 30 dakika içindeki uyarıları say
+            const now = Date.now();
+            
+            // Kullanıcının uyarı verilerini al
+            let userData = warnedUsers.get(message.author.id);
+            
+            if (!userData) {
+                // İlk kez uyarı alıyorsa
+                userData = {
+                    count: 1,
+                    lastWarning: now,
+                    warningTimestamps: [now]
+                };
                 
-                // Send warning message
+                warnedUsers.set(message.author.id, userData);
+                
+                // İlk uyarı mesajı
                 const warningMsg = await message.channel.send({
                     embeds: [new MessageEmbed()
                         .setColor(config.embedColors.warning)
-                        .setDescription(`${config.emojis.warning} <@${message.author.id}>, link paylaşmak bu kanalda yasaktır!`)
+                        .setDescription(`${config.emojis.warning} <@${message.author.id}>, link paylaşmak bu kanalda yasaktır! (Uyarı: 1/${MAX_WARNINGS})`)
                     ]
                 });
                 
@@ -211,6 +227,49 @@ module.exports = {
                 }, 5000);
                 
                 return;
+            }
+            
+            // Eski uyarıları temizle (30 dk'dan eski olanları)
+            userData.warningTimestamps = userData.warningTimestamps.filter(time => now - time < uyariSuresi);
+            
+            // Yeni uyarıyı ekle
+            userData.warningTimestamps.push(now);
+            userData.lastWarning = now;
+            userData.count = userData.warningTimestamps.length;
+            
+            // Uyarı sayısını güncelle
+            warnedUsers.set(message.author.id, userData);
+            
+            logger.info(`${message.author.tag} link paylaşım uyarı sayısı: ${userData.count}/${MAX_WARNINGS}`);
+            
+            // Uyarı limitini (3) aşarsa, aksiyon uygula
+            if (userData.count >= MAX_WARNINGS) {
+                // Mute işlemi yap, ne olursa olsun
+                action = 'mute';
+                // Uyarı sayacını sıfırla
+                userData.count = 0;
+                userData.warningTimestamps = [];
+                warnedUsers.set(message.author.id, userData);
+                
+                logger.security('LINK_MUTE', `${message.author.tag} kullanıcısı ${MAX_WARNINGS} kez link paylaşımı yaptığı için susturuldu`);
+            } else {
+                // Sadece uyarı mesajı gönder ve dön
+                const warningMsg = await message.channel.send({
+                    embeds: [new MessageEmbed()
+                        .setColor(config.embedColors.warning)
+                        .setDescription(`${config.emojis.warning} <@${message.author.id}>, link paylaşmak bu kanalda yasaktır! (Uyarı: ${userData.count}/${MAX_WARNINGS})`)
+                    ]
+                });
+                
+                // Delete warning after 5 seconds
+                setTimeout(() => {
+                    warningMsg.delete().catch(() => {});
+                }, 5000);
+                
+                // Uyarı sayısı limitin altındaysa (1, 2 gibi) ve işlem sadece uyarı/silme ise, burada dön
+                if (action !== 'mute') {
+                    return;
+                }
             }
             
             // For repeated offenses, take the specified action
