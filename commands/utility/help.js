@@ -105,9 +105,12 @@ module.exports = {
                     `${config.emojis.account || '👤'} **Hesap Filtresi** - Yeni hesapların sunucuya girmesini engeller`,
                     `${config.emojis.spam || '🔄'} **Spam Koruma** - Hızlı mesaj spam'ını engeller`,
                     `${config.emojis.link || '🔗'} **Link Koruma** - Discord linklerini ve diğer URL'leri engeller`,
+                    `${config.emojis.filter || '🧹'} **Kelime Filtresi** - Yasaklı kelimeleri ve küfürleri engeller`,
+                    `${config.emojis.emoji || '😀'} **Emoji Filtresi** - Aşırı emoji kullanımını kontrol eder`,
                     `${config.emojis.raid || '🚨'} **Baskın Koruma** - Ani üye artışlarını tespit eder ve önlem alır`,
                     `${config.emojis.security || '🔐'} **Yetki Koruma** - Rollere tehlikeli yetkilerin verilmesini engeller`,
-                    `${config.emojis.limit || '⚠️'} **İşlem Limitleri** - Mod işlemlerinde (kick/ban/kanal/rol) limitleri uygular`
+                    `${config.emojis.limit || '⚠️'} **İşlem Limitleri** - Mod işlemlerinde (kick/ban/kanal/rol) limitleri uygular`,
+                    `${config.emojis.settings || '⚙️'} **Güvenlik Merkezi** - Tüm güvenlik özelliklerini tek bir komuttan yönetin`
                 ].join('\n')
             );
             

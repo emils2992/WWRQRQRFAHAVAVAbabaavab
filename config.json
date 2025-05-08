@@ -93,5 +93,15 @@
         "channel": "📝",
         "role": "👑",
         "security": "🔐"
+    },
+    "wordFilter": {
+        "enabled": false,
+        "words": [],
+        "action": "delete"
+    },
+    "emojiFilter": {
+        "enabled": false,
+        "maxEmojis": 5,
+        "action": "delete"
     }
 }

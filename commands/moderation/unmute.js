@@ -49,15 +49,45 @@ module.exports = {
         
         // Kullanıcının susturulmuş olup olmadığını kontrol et
         if (!target.roles.cache.has(muteRole.id)) {
-            return message.reply({
-                embeds: [new MessageEmbed()
-                    .setColor(config.embedColors.error)
-                    .setDescription(`${config.emojis.error} Bu kullanıcı susturulmamış!`)
-                ]
-            });
+            // Timeout durumunu kontrol et (Discord native timeout)
+            if (!target.communicationDisabledUntil) {
+                return message.reply({
+                    embeds: [new MessageEmbed()
+                        .setColor(config.embedColors.error)
+                        .setDescription(`${config.emojis.error} Bu kullanıcı susturulmamış!`)
+                    ]
+                });
+            }
+            
+            // Discord timeout varsa, onu kaldır
+            try {
+                await target.timeout(null, `${message.author.tag} tarafından susturma kaldırıldı`);
+                
+                // Veritabanından kaldır
+                database.removeMute(message.guild.id, target.id);
+                
+                // Log
+                logger.moderation('TIMEOUT_KALDIR', message.author.tag, target.user.tag, reason);
+                
+                // Başarılı mesaj
+                return message.reply({
+                    embeds: [new MessageEmbed()
+                        .setColor(config.embedColors.success)
+                        .setDescription(`${config.emojis.unmute} **${target.user.tag}** kullanıcısının Discord zaman aşımı kaldırıldı!\n**Sebep:** ${reason}`)
+                    ]
+                });
+            } catch (error) {
+                logger.error(`Timeout kaldırma hatası: ${error.message}`);
+                return message.reply({
+                    embeds: [new MessageEmbed()
+                        .setColor(config.embedColors.error)
+                        .setDescription(`${config.emojis.error} Discord zaman aşımını kaldırırken bir hata oluştu.`)
+                    ]
+                });
+            }
         }
         
-        // Sebep al
+        // Sebep al (bu değişken yukarı taşındı)
         const reason = args.slice(1).join(' ') || 'Sebep belirtilmedi';
         
         try {

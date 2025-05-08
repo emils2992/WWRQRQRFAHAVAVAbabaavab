@@ -43,6 +43,8 @@ const antiBots = require('./security/antiBots');
 const newAccountFilter = require('./security/newAccountFilter');
 const limits = require('./security/limits');
 const permGuard = require('./security/permGuard');
+const wordFilter = require('./security/wordFilter');
+const emojiFilter = require('./security/emojiFilter');
 
 // Initialize security modules
 antiSpam.init(client);
@@ -52,6 +54,8 @@ antiBots.init(client);
 newAccountFilter.init(client);
 limits.init(client);
 permGuard.init(client);
+wordFilter.init(client);
+emojiFilter.init(client);
 
 // Handle process errors
 process.on('unhandledRejection', error => {

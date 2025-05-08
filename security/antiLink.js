@@ -48,9 +48,15 @@ module.exports = {
             if (discordInvites && discordInvites.length > 0) {
                 logger.debug(`Discord daveti tespit edildi: ${discordInvites.join(', ')}`);
                 
-                // Yetkili mi kontrol et (daha önce kontrol edildi ama hızlı dönüş için tekrar)
-                if (message.member && message.member.permissions && message.member.permissions.has(8)) {
-                    logger.debug(`Discord daveti izni var: ${message.author.tag} - Admin`);
+                // Sunucu sahibiyse engelleme
+                if (message.guild.ownerId === message.author.id) {
+                    logger.debug(`Discord daveti izni var: ${message.author.tag} - Sunucu Sahibi`);
+                    return false;
+                }
+                
+                // Botu yöneten kişiyse engelleme
+                if (config.owners && config.owners.includes(message.author.id)) {
+                    logger.debug(`Discord daveti izni var: ${message.author.tag} - Bot Sahibi`);
                     return false;
                 }
                 
@@ -83,12 +89,13 @@ module.exports = {
                     return false;
                 }
                 
-                // Yetki kontrolüne dikkatli bir şekilde bak
-                const hasManageMessages = message.member.permissions && message.member.permissions.has(8192); // MANAGE_MESSAGES
-                const hasAdministrator = message.member.permissions && message.member.permissions.has(8); // ADMINISTRATOR
+                // Sadece sunucu sahibi ve admin rolü olanlar izinli olsun
+                // MANAGE_MESSAGES yetkisi varsa ModerationLog sistemi devreye girer fakat, bu kullanıcı hala engellenir
+                // Sadece AdminRole, Sunucu Sahibi ve Bot Sahibi atlanır
                 
-                if (hasManageMessages || hasAdministrator) {
-                    logger.debug(`Link izni var: ${message.author.tag} - Yetkili`);
+                // Sunucu sahibi kontrolü
+                if (message.guild.ownerId === message.author.id) {
+                    logger.debug(`Link izni var: ${message.author.tag} - Sunucu Sahibi`);
                     return false;
                 }
             } catch (error) {
@@ -129,7 +136,7 @@ module.exports = {
                             
                             // Discord davetlerini doğrudan engelle
                             if (domain.includes('discord.gg') || domain.includes('discord.com/invite')) {
-                                logger.security('DISCORD_INVITE', `Discord daveti: ${domain} by ${message.author.tag}`);
+                                logger.security('DISCORD_DAVETI', `${message.author.tag} kullanıcısı Discord daveti paylaştı: ${domain}`);
                                 this.takeAction(message, config.antiLink.action || 'delete');
                                 return true;
                             }
@@ -155,7 +162,7 @@ module.exports = {
             
             // Check action type
             const action = config.antiLink.action || 'delete';
-            logger.security('LINK_BLOCKED', `Link yakalandı: ${message.content.slice(0, 100)} by ${message.author.tag}`);
+            logger.security('LINK_ENGELLENDI', `${message.author.tag} tarafından paylaşılan link engellendi: ${message.content.slice(0, 100)}`);
             
             // Take action based on config
             this.takeAction(message, action);
@@ -172,7 +179,7 @@ module.exports = {
      * @param {string} action - The action to take (delete, warn, mute)
      */
     async takeAction(message, action) {
-        logger.security('LINK_DETECTED', `Link detected from ${message.author.tag} in ${message.guild.name}`);
+        logger.security('LINK', `${message.author.tag} tarafından yasak link paylaşıldı`);
         
         try {
             // Delete the message

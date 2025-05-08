@@ -91,7 +91,7 @@ module.exports = {
      */
     async takeAction(message) {
         // Log spam detection
-        logger.security('SPAM_DETECTED', `User ${message.author.tag} detected for spamming in ${message.guild.name}`);
+        logger.security('SPAM_TESPIT', `${message.author.tag} kullanıcısı spam yapıyor`);
         
         try {
             // Delete recent messages from the user
@@ -112,7 +112,7 @@ module.exports = {
                 message.channel.send({
                     embeds: [new MessageEmbed()
                         .setColor(config.embedColors.warning)
-                        .setDescription(`${config.emojis.warning} Spam detected from <@${message.author.id}>. Please configure a mute role for automatic muting.`)
+                        .setDescription(`${config.emojis.warning} <@${message.author.id}> kullanıcısından spam tespit edildi. Otomatik susturma için lütfen bir susturma rolü yapılandırın.`)
                     ]
                 });
                 
@@ -124,13 +124,13 @@ module.exports = {
             
             // Add mute to database with duration
             const muteTime = config.antiSpam.muteTime * 60 * 1000; // Convert minutes to ms
-            database.addMute(message.guild.id, message.author.id, message.client.user.id, 'Automatic mute for spamming', muteTime);
+            database.addMute(message.guild.id, message.author.id, message.client.user.id, 'Spam yapma nedeniyle otomatik susturma', muteTime);
             
             // Send notification in channel
             message.channel.send({
                 embeds: [new MessageEmbed()
                     .setColor(config.embedColors.warning)
-                    .setDescription(`${config.emojis.mute} <@${message.author.id}> has been muted for ${config.antiSpam.muteTime} minutes for spamming.`)
+                    .setDescription(`${config.emojis.mute} <@${message.author.id}> spam yaptığı için ${config.antiSpam.muteTime} dakika susturuldu.`)
                 ]
             });
             
@@ -139,9 +139,9 @@ module.exports = {
                 await message.author.send({
                     embeds: [new MessageEmbed()
                         .setColor(config.embedColors.warning)
-                        .setTitle(`${config.emojis.mute} You have been muted in ${message.guild.name}`)
-                        .setDescription(`You have been automatically muted for ${config.antiSpam.muteTime} minutes due to spamming.`)
-                        .setFooter({ text: 'Please respect the server rules and avoid spamming in the future.' })
+                        .setTitle(`${config.emojis.mute} ${message.guild.name} sunucusunda susturuldunuz`)
+                        .setDescription(`Spam yaptığınız için ${config.antiSpam.muteTime} dakika otomatik olarak susturuldunuz.`)
+                        .setFooter({ text: 'Lütfen sunucu kurallarına saygı gösterin ve gelecekte spam yapmaktan kaçının.' })
                         .setTimestamp()
                     ]
                 });
@@ -155,13 +155,13 @@ module.exports = {
                 logChannel.send({
                     embeds: [new MessageEmbed()
                         .setColor(config.embedColors.warning)
-                        .setTitle(`${config.emojis.mute} Auto-Mute for Spam`)
-                        .setDescription(`**${message.author.tag}** has been automatically muted for spamming.`)
+                        .setTitle(`${config.emojis.mute} Spam için Otomatik Susturma`)
+                        .setDescription(`**${message.author.tag}** spam yaptığı için otomatik olarak susturuldu.`)
                         .addFields(
-                            { name: 'User', value: `<@${message.author.id}>`, inline: true },
-                            { name: 'User ID', value: message.author.id, inline: true },
-                            { name: 'Channel', value: `<#${message.channel.id}>`, inline: true },
-                            { name: 'Duration', value: `${config.antiSpam.muteTime} minutes`, inline: true }
+                            { name: 'Kullanıcı', value: `<@${message.author.id}>`, inline: true },
+                            { name: 'Kullanıcı ID', value: message.author.id, inline: true },
+                            { name: 'Kanal', value: `<#${message.channel.id}>`, inline: true },
+                            { name: 'Süre', value: `${config.antiSpam.muteTime} dakika`, inline: true }
                         )
                         .setThumbnail(message.author.displayAvatarURL({ dynamic: true }))
                         .setTimestamp()

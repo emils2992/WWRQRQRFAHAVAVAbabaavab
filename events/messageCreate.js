@@ -4,6 +4,8 @@ const logger = require('../utils/logger');
 const antiSpam = require('../security/antiSpam');
 const antiLink = require('../security/antiLink');
 const limits = require('../security/limits');
+const wordFilter = require('../security/wordFilter');
+const emojiFilter = require('../security/emojiFilter');
 
 module.exports = {
     name: 'messageCreate',
@@ -47,6 +49,26 @@ module.exports = {
                 const limitReached = limits.checkMassTagLimit(message.guild, message.author.id);
                 if (limitReached) {
                     logger.security('MASS_TAG', `${message.author.tag} toplu etiket limiti aşıldı`);
+                    return;
+                }
+            }
+            
+            // Yasaklı kelime kontrolü
+            if (config.wordFilter && config.wordFilter.enabled) {
+                logger.debug(`Kelime filtresi kontrol ediliyor: ${message.author.tag}`);
+                const badWordDetected = wordFilter.checkMessage(message);
+                if (badWordDetected) {
+                    logger.security('YASAK_KELIME', `${message.author.tag} tarafından yasaklı kelime kullanıldı`);
+                    return;
+                }
+            }
+            
+            // Emoji filtresi kontrolü
+            if (config.emojiFilter && config.emojiFilter.enabled) {
+                logger.debug(`Emoji filtresi kontrol ediliyor: ${message.author.tag}`);
+                const emojiLimitExceeded = emojiFilter.checkMessage(message);
+                if (emojiLimitExceeded) {
+                    logger.security('EMOJI_LIMIT', `${message.author.tag} emoji limitini aştı`);
                     return;
                 }
             }

@@ -12,7 +12,7 @@ module.exports = {
         logger.info(`Bot logged in as ${client.user.tag}!`);
         
         // Set bot activity
-        client.user.setActivity(`.help | Protecting ${client.guilds.cache.size} servers`, { type: 'WATCHING' });
+        client.user.setActivity(`.yardım | ${client.guilds.cache.size} sunucuyu koruyor`, { type: 'WATCHING' });
         
         // Log some stats
         logger.info(`Serving ${client.guilds.cache.size} guilds with ${client.users.cache.size} users`);
@@ -27,7 +27,7 @@ module.exports = {
         
         // Update activity every hour
         setInterval(() => {
-            client.user.setActivity(`.help | Protecting ${client.guilds.cache.size} servers`, { type: 'WATCHING' });
+            client.user.setActivity(`.yardım | ${client.guilds.cache.size} sunucuyu koruyor`, { type: 'WATCHING' });
         }, 3600000); // every hour
     }
 };
@@ -182,21 +182,61 @@ async function checkExpiredMutes(client) {
             database.removeMute(guildId, userId);
             
             // Log unmute
-            logger.moderation('UNMUTE (AUTO)', client.user.tag, member.user.tag, 'Mute duration expired');
+            logger.moderation('UNMUTE (AUTO)', client.user.tag, member.user.tag, 'Mute süresi doldu');
+            
+            try {
+                // DM ile bilgilendirme gönder
+                await member.send({
+                    embeds: [{
+                        color: client.config.embedColors.success,
+                        title: `${client.config.emojis.unmute || '🔊'} Susturma Süresi Doldu`,
+                        description: `**${guild.name}** sunucusundaki susturma süreniz doldu ve susturmanız otomatik olarak kaldırıldı.`,
+                        timestamp: new Date()
+                    }]
+                }).catch(() => {}); // DM kapalıysa sessizce devam et
+            } catch (error) {
+                logger.debug(`Failed to send DM to unmuted user: ${error.message}`);
+            }
+            
+            // Kullanıcının son mesaj attığı kanala bildirim gönder
+            try {
+                const channels = guild.channels.cache.filter(c => c.type === 'GUILD_TEXT');
+                for (const [id, channel] of channels) {
+                    // Kullanıcının kanalda mesaj atma yetkisi varsa
+                    if (channel.permissionsFor(member).has('SEND_MESSAGES')) {
+                        channel.send({
+                            embeds: [{
+                                color: client.config.embedColors.success,
+                                description: `${client.config.emojis.unmute || '🔊'} <@${member.id}>, susturma süreniz doldu ve artık konuşabilirsiniz.`
+                            }]
+                        }).then(msg => {
+                            // 10 saniye sonra mesajı sil
+                            setTimeout(() => {
+                                msg.delete().catch(() => {});
+                            }, 10000);
+                        }).catch(() => {
+                            // Bu kanalda gönderilemezse diğer kanallara devam et
+                        });
+                        break; // İlk uygun kanalda mesaj gönderdikten sonra döngüden çık
+                    }
+                }
+            } catch (error) {
+                logger.debug(`Failed to send channel notification for unmuted user: ${error.message}`);
+            }
             
             // Send message in log channel
             const logChannel = guild.channels.cache.get(client.config.logChannel);
             if (logChannel) {
-                const emoji = client.config.emojis.unmute;
+                const emoji = client.config.emojis.unmute || '🔊';
                 logChannel.send({
                     embeds: [{
                         color: client.config.embedColors.success,
-                        title: `${emoji} Auto Unmute`,
-                        description: `**${member.user.tag}** has been automatically unmuted.`,
+                        title: `${emoji} Otomatik Susturma Kaldırma`,
+                        description: `**${member.user.tag}** kullanıcısının susturması otomatik olarak kaldırıldı.`,
                         fields: [
-                            { name: 'User', value: `<@${member.user.id}>`, inline: true },
-                            { name: 'User ID', value: member.user.id, inline: true },
-                            { name: 'Reason', value: 'Mute duration expired' }
+                            { name: 'Kullanıcı', value: `<@${member.user.id}>`, inline: true },
+                            { name: 'Kullanıcı ID', value: member.user.id, inline: true },
+                            { name: 'Sebep', value: 'Susturma süresi doldu' }
                         ],
                         timestamp: new Date()
                     }]
