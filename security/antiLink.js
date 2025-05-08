@@ -3,8 +3,11 @@ const config = require('../config.json');
 const logger = require('../utils/logger');
 const database = require('../utils/database');
 
-// URL regex pattern
-const URL_REGEX = /(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,}|discord\.gg\/[a-zA-Z0-9]+)/i;
+// URL regex pattern - Güçlendirilmiş sürüm
+const URL_REGEX = /(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,}|discord\.gg\/[a-zA-Z0-9-]+)/i;
+
+// Discord davet regex
+const DISCORD_INVITE_REGEX = /(discord\.(gg|io|me|li)|discordapp\.com\/invite|discord\.com\/invite)\/[a-zA-Z0-9-]+/gi;
 
 // Collection for cooldowns
 const warnedUsers = new Collection();
@@ -30,35 +33,137 @@ module.exports = {
      * @returns {boolean} Whether links were detected and action was taken
      */
     checkMessage(message) {
-        // Skip if anti-link is disabled
-        if (!config.antiLink || !config.antiLink.enabled) return false;
-        
-        // Ignore bot messages
-        if (message.author.bot) return false;
-        
-        // Check if message contains a link
-        if (!URL_REGEX.test(message.content)) return false;
-        
-        // Ignore users with permission to post links
-        if (message.member.permissions.has('MANAGE_MESSAGES') || 
-            message.member.permissions.has('ADMINISTRATOR')) {
+        try {
+            // Skip if anti-link is disabled
+            if (!config.antiLink || !config.antiLink.enabled) return false;
+            
+            // Ignore bot messages
+            if (message.author.bot) return false;
+            
+            // Log for debugging
+            logger.debug(`Anti-link kontrol ediliyor: ${message.content}`);
+            
+            // Önce Discord davetlerini kontrol et - daha hızlı tespit için
+            const discordInvites = message.content.match(DISCORD_INVITE_REGEX);
+            if (discordInvites && discordInvites.length > 0) {
+                logger.debug(`Discord daveti tespit edildi: ${discordInvites.join(', ')}`);
+                
+                // Yetkili mi kontrol et (daha önce kontrol edildi ama hızlı dönüş için tekrar)
+                if (message.member && message.member.permissions && message.member.permissions.has(8)) {
+                    logger.debug(`Discord daveti izni var: ${message.author.tag} - Admin`);
+                    return false;
+                }
+                
+                logger.security('DISCORD_INVITE', `Discord daveti yakalandı: ${discordInvites[0]} by ${message.author.tag}`);
+                this.takeAction(message, config.antiLink.action || 'delete');
+                return true;
+            }
+            
+            // Normal linkleri kontrol et
+            if (!URL_REGEX.test(message.content)) return false;
+            
+            logger.debug(`Link tespit edildi: ${message.content}`);
+            
+            // Ignore users with permission to post links - Kontrol güçlendirildi
+            try {
+                // Owner her durumda atlanır
+                const isOwner = config.owners && config.owners.includes(message.author.id);
+                if (isOwner) {
+                    logger.debug(`Link izni var: ${message.author.tag} - Bot sahibi`);
+                    return false;
+                }
+                
+                // Mod ve Admin rolleri atlanır
+                const memberRoles = message.member.roles.cache.map(r => r.id);
+                const isModRole = config.modRoles && config.modRoles.some(roleId => memberRoles.includes(roleId));
+                const isAdminRole = config.adminRoles && config.adminRoles.some(roleId => memberRoles.includes(roleId));
+                
+                if (isModRole || isAdminRole) {
+                    logger.debug(`Link izni var: ${message.author.tag} - Yetkili Rolü`);
+                    return false;
+                }
+                
+                // Yetki kontrolüne dikkatli bir şekilde bak
+                const hasManageMessages = message.member.permissions && message.member.permissions.has(8192); // MANAGE_MESSAGES
+                const hasAdministrator = message.member.permissions && message.member.permissions.has(8); // ADMINISTRATOR
+                
+                if (hasManageMessages || hasAdministrator) {
+                    logger.debug(`Link izni var: ${message.author.tag} - Yetkili`);
+                    return false;
+                }
+            } catch (error) {
+                logger.error(`Yetkili kontrolü hatası: ${error.message}`);
+                // Hata olsa bile devam ediyoruz, yetkili olmayan kullanıcılar için
+            }
+            
+            // Check if the user is whitelisted in the channel
+            try {
+                const guildConfig = database.getGuildConfig(message.guild.id);
+                const allowedChannels = (guildConfig && guildConfig.linkAllowedChannels) || [];
+                
+                if (allowedChannels.includes(message.channel.id)) {
+                    logger.debug(`Link izni var: ${message.channel.name} kanalında linkler serbest`);
+                    return false;
+                }
+            } catch (error) {
+                logger.error(`Anti-link channel check error: ${error.message}`);
+            }
+            
+            // Check whitelist
+            try {
+                const whitelist = config.antiLink.whitelist || [];
+                // URL'yi kontrol et
+                const matches = message.content.match(URL_REGEX);
+                if (matches) {
+                    for (const match of matches) {
+                        let domain = match;
+                        
+                        // URL protokolünü ekle eğer yoksa
+                        if (!domain.startsWith('http')) {
+                            domain = 'http://' + domain;
+                        }
+                        
+                        try {
+                            const urlObj = new URL(domain);
+                            domain = urlObj.hostname.replace(/^www\./i, '');
+                            
+                            // Discord davetlerini doğrudan engelle
+                            if (domain.includes('discord.gg') || domain.includes('discord.com/invite')) {
+                                logger.security('DISCORD_INVITE', `Discord daveti: ${domain} by ${message.author.tag}`);
+                                this.takeAction(message, config.antiLink.action || 'delete');
+                                return true;
+                            }
+                            
+                            // Beyaz listede var mı kontrol et
+                            const isWhitelisted = whitelist.some(allowedDomain => 
+                                domain.includes(allowedDomain) || allowedDomain.includes(domain)
+                            );
+                            
+                            if (isWhitelisted) {
+                                logger.debug(`Beyaz listede: ${domain}`);
+                                return false;
+                            }
+                        } catch (e) {
+                            // URL parse edilemezse devam et
+                            logger.error(`URL parse hatası: ${e.message} - ${domain}`);
+                        }
+                    }
+                }
+            } catch (error) {
+                logger.error(`Anti-link whitelist check error: ${error.message}`);
+            }
+            
+            // Check action type
+            const action = config.antiLink.action || 'delete';
+            logger.security('LINK_BLOCKED', `Link yakalandı: ${message.content.slice(0, 100)} by ${message.author.tag}`);
+            
+            // Take action based on config
+            this.takeAction(message, action);
+            return true;
+        } catch (error) {
+            logger.error(`Anti-link genel hata: ${error.message}`);
             return false;
         }
-        
-        // Check if the user is whitelisted in the channel
-        const guildConfig = database.getGuildConfig(message.guild.id);
-        const allowedChannels = (guildConfig.linkAllowedChannels || []);
-        
-        if (allowedChannels.includes(message.channel.id)) {
-            return false;
-        }
-        
-        // Check action type
-        const action = config.antiLink.action || 'delete';
-        
-        // Take action based on config
-        this.takeAction(message, action);
-        return true;
     },
     
     /**

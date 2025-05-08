@@ -7,7 +7,7 @@ const ms = require('ms');
 module.exports = {
     name: 'sustur',
     description: 'Bir kullanıcıyı belirli bir süre için susturur',
-    usage: '<kullanıcı> [süre] [sebep]',
+    usage: '<@kullanıcı> [1dk/1sa/1g/1h] [sebep]',
     aliases: ['mute', 'sus', 's'],
     args: true,
     argsCount: 1,
@@ -95,18 +95,59 @@ module.exports = {
             }
         }
         
-        // Eğer belirtildiyse süreyi ayrıştır
+        // Eğer belirtildiyse süreyi ayrıştır - Kısaltılmış format destekleniyor
         let duration = null;
         let durationMs = null;
         let reason = 'Sebep belirtilmedi';
         
         if (args[1]) {
+            // Kısaltılmış formatları destekle
+            let timeArg = args[1].toLowerCase();
+            
+            // Süre formatlarını eşitle - örn: 1dk, 1d, 1dakika → 1m
+            if (timeArg.includes('dk') || timeArg.includes('dakika') || timeArg === 'd') {
+                const num = parseInt(timeArg.replace(/[^0-9]/g, ''), 10);
+                if (!isNaN(num)) {
+                    timeArg = num + 'm'; // dakika = m (ms kütüphanesi için)
+                }
+            } else if (timeArg.includes('sa') || timeArg.includes('saat') || timeArg === 's') {
+                const num = parseInt(timeArg.replace(/[^0-9]/g, ''), 10);
+                if (!isNaN(num)) {
+                    timeArg = num + 'h'; // saat = h (ms kütüphanesi için)
+                }
+            } else if (timeArg.includes('g') || timeArg.includes('gün')) {
+                const num = parseInt(timeArg.replace(/[^0-9]/g, ''), 10);
+                if (!isNaN(num)) {
+                    timeArg = num + 'd'; // gün = d (ms kütüphanesi için)
+                }
+            } else if (timeArg.includes('h') || timeArg.includes('hafta')) {
+                const num = parseInt(timeArg.replace(/[^0-9]/g, ''), 10);
+                if (!isNaN(num)) {
+                    timeArg = num + 'w'; // hafta = w (ms kütüphanesi için)
+                }
+            }
+            
             // İkinci argümanın bir süre olup olmadığını kontrol et
-            const time = ms(args[1]);
+            const time = ms(timeArg);
             if (time) {
                 duration = args[1];
                 durationMs = time;
                 reason = args.slice(2).join(' ') || 'Sebep belirtilmedi';
+                
+                // Görüntülenecek süreyi Türkçeleştir
+                if (timeArg.endsWith('m')) {
+                    const mins = parseInt(timeArg.replace('m', ''), 10);
+                    duration = mins + ' dakika';
+                } else if (timeArg.endsWith('h')) {
+                    const hours = parseInt(timeArg.replace('h', ''), 10);
+                    duration = hours + ' saat';
+                } else if (timeArg.endsWith('d')) {
+                    const days = parseInt(timeArg.replace('d', ''), 10);
+                    duration = days + ' gün';
+                } else if (timeArg.endsWith('w')) {
+                    const weeks = parseInt(timeArg.replace('w', ''), 10);
+                    duration = weeks + ' hafta';
+                }
             } else {
                 reason = args.slice(1).join(' ');
             }

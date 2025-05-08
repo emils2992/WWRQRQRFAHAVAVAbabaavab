@@ -99,15 +99,15 @@ module.exports = {
             
             // Add security features section
             embed.addField(
-                `${config.emojis.shield} Güvenlik Özellikleri`,
+                `${config.emojis.shield || '🛡️'} Güvenlik Özellikleri`,
                 [
                     `${config.emojis.bot || '🤖'} **Bot Filtresi** - Bilinmeyen botların sunucunuza eklenmesini engeller`,
                     `${config.emojis.account || '👤'} **Hesap Filtresi** - Yeni hesapların sunucuya girmesini engeller`,
-                    `${config.emojis.channel || '📝'} **Kanal Limitleri** - Kanal ekleme/silme işlemlerini sınırlar`,
-                    `${config.emojis.role || '👑'} **Rol Limitleri** - Rol oluşturma/silme işlemlerini sınırlar`,
-                    `${config.emojis.kick || '👢'} **Kick & Ban Limitleri** - Atma/yasaklama işlemlerini sınırlar`,
+                    `${config.emojis.spam || '🔄'} **Spam Koruma** - Hızlı mesaj spam'ını engeller`,
+                    `${config.emojis.link || '🔗'} **Link Koruma** - Discord linklerini ve diğer URL'leri engeller`,
+                    `${config.emojis.raid || '🚨'} **Baskın Koruma** - Ani üye artışlarını tespit eder ve önlem alır`,
                     `${config.emojis.security || '🔐'} **Yetki Koruma** - Rollere tehlikeli yetkilerin verilmesini engeller`,
-                    `${config.emojis.link || '🔗'} **URL Koruması** - Sunucunun özel URL'sini korur`
+                    `${config.emojis.limit || '⚠️'} **İşlem Limitleri** - Mod işlemlerinde (kick/ban/kanal/rol) limitleri uygular`
                 ].join('\n')
             );
             

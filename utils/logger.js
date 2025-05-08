@@ -16,7 +16,7 @@ const myFormat = printf(({ level, message, timestamp }) => {
 
 // Create the logger
 const logger = createLogger({
-    level: 'info',
+    level: 'debug', // Değer 'debug' olarak değiştirildi
     format: combine(
         timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
         myFormat
@@ -58,6 +58,11 @@ logger.operation = (operation, details) => {
 logger.security = (event, details) => {
     const message = `SECURITY: ${event} | Details: ${details}`;
     logger.warn(message);
+};
+
+// Function to log debug messages
+logger.debug = (message) => {
+    logger.log('debug', message);
 };
 
 module.exports = logger;

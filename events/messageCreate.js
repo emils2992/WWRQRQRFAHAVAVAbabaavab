@@ -18,23 +18,40 @@ module.exports = {
         // Ignore DM messages
         if (!message.guild) return;
         
-        // Anti-spam check
-        if (config.antiSpam && config.antiSpam.enabled) {
-            const spamDetected = antiSpam.checkMessage(message);
-            if (spamDetected) return;
-        }
-        
-        // Anti-link check
-        if (config.antiLink && config.antiLink.enabled) {
-            const linkDetected = antiLink.checkMessage(message);
-            if (linkDetected) return;
-        }
-        
-        // Toplu etiket kontrolü
-        if (config.limits && config.limits.enabled && message.mentions.everyone) {
-            const { checkMassTagLimit } = limits;
-            const limitReached = checkMassTagLimit(message.guild, message.author.id);
-            if (limitReached) return;
+        // Güvenlik sistemi kontrolleri
+        try {
+            // Anti-spam kontrolü
+            if (config.antiSpam && config.antiSpam.enabled) {
+                logger.debug(`Anti-spam kontrol ediliyor: ${message.author.tag}`);
+                const spamDetected = antiSpam.checkMessage(message);
+                if (spamDetected) {
+                    logger.security('SPAM', `${message.author.tag} tarafından spam tespit edildi`);
+                    return;
+                }
+            }
+            
+            // Anti-link kontrolü
+            if (config.antiLink && config.antiLink.enabled) {
+                logger.debug(`Anti-link kontrol ediliyor: ${message.content}`);
+                const linkDetected = antiLink.checkMessage(message);
+                if (linkDetected) {
+                    logger.security('LINK', `${message.author.tag} tarafından yasak link paylaşıldı`);
+                    return;
+                }
+            }
+            
+            // Toplu etiket kontrolü
+            const hasMassMention = message.mentions.users.size >= 3 || message.mentions.roles.size >= 2 || message.mentions.everyone;
+            if (config.limits && config.limits.enabled && hasMassMention) {
+                logger.debug(`Toplu etiket kontrol ediliyor: ${message.author.tag}`);
+                const limitReached = limits.checkMassTagLimit(message.guild, message.author.id);
+                if (limitReached) {
+                    logger.security('MASS_TAG', `${message.author.tag} toplu etiket limiti aşıldı`);
+                    return;
+                }
+            }
+        } catch (error) {
+            logger.error(`Güvenlik kontrol hatası: ${error.message}`);
         }
         
         // Check if message starts with prefix

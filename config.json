@@ -1,12 +1,16 @@
 {
-    "token": "", 
+    "token": "",
     "prefix": ".",
     "owners": [],
-    "logChannel": "",
-    "modRoles": [],
-    "adminRoles": [],
-    "muteRole": "",
-    "welcomeChannel": "",
+    "logChannel": "1370144827777355969",
+    "modRoles": [
+        "modRoleID"
+    ],
+    "adminRoles": [
+        "adminRoleID"
+    ],
+    "muteRole": "1370144636907294831",
+    "welcomeChannel": "welcomeChannelID",
     "antiSpam": {
         "enabled": true,
         "maxMessages": 5,
@@ -17,7 +21,7 @@
         "enabled": true,
         "joinThreshold": 5,
         "timeWindow": 10000,
-        "action": "lockdown" 
+        "action": "lockdown"
     },
     "antiLink": {
         "enabled": true,
