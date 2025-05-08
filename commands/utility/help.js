@@ -19,33 +19,6 @@ module.exports = {
         const prefix = config.prefix;
         const { commands } = client;
         
-        // Emoji ve kategori isimlerini alma fonksiyonları
-        function getCategoryEmoji(category) {
-            category = category.toLowerCase();
-            
-            if (category.includes('moderation')) return config.emojis.ban || '🔨';
-            if (category.includes('utility')) return config.emojis.info || 'ℹ️';
-            if (category.includes('fun')) return '🎮';
-            if (category.includes('music')) return '🎵';
-            if (category.includes('economy')) return '💰';
-            if (category.includes('level')) return '📊';
-            
-            return config.emojis.info || 'ℹ️';
-        }
-        
-        function getCategoryName(category) {
-            category = category.toLowerCase();
-            
-            if (category.includes('moderation')) return 'Moderasyon';
-            if (category.includes('utility')) return 'Yardımcı';
-            if (category.includes('fun')) return 'Eğlence';
-            if (category.includes('music')) return 'Müzik';
-            if (category.includes('economy')) return 'Ekonomi';
-            if (category.includes('level')) return 'Seviye';
-            
-            return category.charAt(0).toUpperCase() + category.slice(1);
-        }
-        
         // If no command is specified, show all commands
         if (!args.length) {
             // Get all command categories

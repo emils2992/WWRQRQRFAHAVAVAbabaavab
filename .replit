@@ -13,20 +13,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "DiscordBot"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "discord-bot"
-
-[[workflows.workflow]]
-name = "DiscordBot"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm install && node index.js"
-waitForPort = 5000
 
 [[workflows.workflow]]
 name = "discord-bot"
