@@ -22,23 +22,49 @@ module.exports = {
         
         // Güvenlik sistemi kontrolleri
         try {
+            // Özel debug modu - gelişmiş loglar
+            const isDeveloper = message.author.id === message.guild.ownerId; // Geliştirme için
+            
             // Anti-spam kontrolü
             if (config.antiSpam && config.antiSpam.enabled) {
-                logger.debug(`Anti-spam kontrol ediliyor: ${message.author.tag}`);
-                const spamDetected = antiSpam.checkMessage(message);
-                if (spamDetected) {
-                    logger.security('SPAM', `${message.author.tag} tarafından spam tespit edildi`);
-                    return;
+                logger.info(`Anti-spam kontrol ediliyor: ${message.author.tag} - Mesaj: ${message.content.substring(0, 30)}`);
+                // Mod veya adminleri kontrol et
+                if (!message.member.permissions.has('MANAGE_MESSAGES')) {
+                    const spamDetected = antiSpam.checkMessage(message);
+                    if (spamDetected) {
+                        logger.security('SPAM', `${message.author.tag} tarafından spam tespit edildi`);
+                        return;
+                    }
+                } else if (isDeveloper) {
+                    logger.info(`Anti-spam atlandı: ${message.author.tag} (yönetici yetkileri var)`);
                 }
             }
             
             // Anti-link kontrolü
             if (config.antiLink && config.antiLink.enabled) {
-                logger.debug(`Anti-link kontrol ediliyor: ${message.content}`);
-                const linkDetected = antiLink.checkMessage(message);
-                if (linkDetected) {
-                    logger.security('LINK', `${message.author.tag} tarafından yasak link paylaşıldı`);
-                    return;
+                logger.info(`Anti-link kontrol ediliyor: ${message.content.substring(0, 30)}`);
+                
+                // URL tespit için basit kontrol
+                const hasLink = message.content.includes('http') || 
+                                message.content.includes('www.') ||
+                                message.content.includes('.com') ||
+                                message.content.includes('.net') ||
+                                message.content.includes('.org') ||
+                                message.content.includes('discord.gg');
+                
+                if (hasLink) {
+                    logger.info(`Link içeriği tespit edildi: ${message.content}`);
+                    
+                    // Moderatörleri atla
+                    if (!message.member.permissions.has('MANAGE_MESSAGES')) {
+                        const linkDetected = antiLink.checkMessage(message);
+                        if (linkDetected) {
+                            logger.security('LINK', `${message.author.tag} tarafından yasak link paylaşıldı`);
+                            return;
+                        }
+                    } else if (isDeveloper) {
+                        logger.info(`Anti-link atlandı: ${message.author.tag} (yönetici yetkileri var)`);
+                    }
                 }
             }
             

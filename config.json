@@ -13,8 +13,8 @@
     "welcomeChannel": "welcomeChannelID",
     "antiSpam": {
         "enabled": true,
-        "maxMessages": 5,
-        "timeWindow": 3000,
+        "maxMessages": 4,
+        "timeWindow": 5000,
         "muteTime": 10
     },
     "antiRaid": {

@@ -27,63 +27,96 @@ module.exports = {
      * @returns {boolean} Whether spam was detected
      */
     checkMessage(message) {
-        // If anti-spam is disabled, return
-        if (!config.antiSpam.enabled) return false;
-        
-        // Ignore bot messages
-        if (message.author.bot) return false;
-        
-        // Get anti-spam config
-        const LIMIT = config.antiSpam.maxMessages || 5;
-        const TIME = config.antiSpam.timeWindow || 3000;
-        const DIFF = config.antiSpam.timeWindow || 3000;
-        
-        // Ignore if user has MANAGE_MESSAGES permission
-        if (message.member.permissions.has('MANAGE_MESSAGES')) return false;
-        
-        // Get user data from collection
-        const userData = usersMap.get(message.author.id);
-        
-        // If user doesn't exist in the collection
-        if (!userData) {
-            usersMap.set(message.author.id, {
-                messages: 1,
-                lastMessage: Date.now(),
-                timer: null
-            });
+        try {
+            // If anti-spam is disabled, return
+            if (!config.antiSpam || !config.antiSpam.enabled) return false;
+            
+            // Ignore bot messages
+            if (message.author.bot) return false;
+            
+            // GELİŞTİRİLMİŞ SPAM TESPİTİ - Discord.js v13 için optimize edildi
+            
+            // Get anti-spam config with default values
+            const LIMIT = config.antiSpam.maxMessages || 5;
+            const TIME_WINDOW = config.antiSpam.timeWindow || 3000;
+            
+            // Ignore if user has MANAGE_MESSAGES permission (yöneticileri atla)
+            if (message.member.permissions.has('MANAGE_MESSAGES')) {
+                logger.debug(`Spam kontrolü atlandı: ${message.author.tag} (yönetici)`);
+                return false;
+            }
+            
+            // Şu anki zaman
+            const now = Date.now();
+            
+            // KULLANICININ TÜM VERİLERİNİ KONTROL ET
+            const userData = usersMap.get(message.author.id);
+            
+            // Eğer kullanıcı koleksiyonda yoksa, ekle
+            if (!userData) {
+                logger.debug(`Yeni kullanıcı spam listesine eklendi: ${message.author.tag}`);
+                
+                usersMap.set(message.author.id, {
+                    messages: 1,
+                    lastMessage: now,
+                    messagesTimestamps: [now],
+                    timer: setTimeout(() => {
+                        logger.debug(`Kullanıcı verisi temizlendi: ${message.author.id}`);
+                        usersMap.delete(message.author.id);
+                    }, TIME_WINDOW)
+                });
+                
+                return false;
+            }
+            
+            // MESAJ SAYISINI KONTROL ETMEK İÇİN YENİ APPROACH:
+            // 1. Zaman damgaları listesine şimdiyi ekle 
+            // 2. TIME_WINDOW içindeki mesajları filtrele ve say
+            // 3. Eğer limit aşılırsa aksiyon al
+            
+            // Eski timer'ı temizle ve yeni oluştur
+            clearTimeout(userData.timer);
+            
+            // Zaman damgalarını güncelle 
+            if (!userData.messagesTimestamps) {
+                userData.messagesTimestamps = [now]; // İlk defa oluşturuluyorsa
+            } else {
+                userData.messagesTimestamps.push(now);
+            }
+            
+            // Sadece son TIME_WINDOW ms içindeki mesajları filtrele
+            const recentMessages = userData.messagesTimestamps.filter(
+                timestamp => now - timestamp < TIME_WINDOW
+            );
+            
+            // Veriyi güncelle
+            userData.messagesTimestamps = recentMessages;
+            userData.messages = recentMessages.length;
+            userData.lastMessage = now;
+            
+            // Yeni timer oluştur
+            userData.timer = setTimeout(() => {
+                logger.debug(`Kullanıcı verisi temizlendi: ${message.author.id}`);
+                usersMap.delete(message.author.id);
+            }, TIME_WINDOW);
+            
+            // Spam için limit kontrolü
+            if (userData.messages >= LIMIT) {
+                logger.info(`SPAM TESPİT EDİLDİ! ${message.author.tag} kullanıcısı ${TIME_WINDOW/1000} saniye içinde ${userData.messages} mesaj gönderdi! Limit: ${LIMIT}`);
+                
+                // SPAM TESPİT EDİLDİ! AKSİYON AL!
+                this.takeAction(message);
+                return true;
+            }
+            
+            // Veriyi güncelle
+            usersMap.set(message.author.id, userData);
+            
+            return false;
+        } catch (error) {
+            logger.error(`Anti-spam kontrol hatası: ${error.message}`);
             return false;
         }
-        
-        // Mesaj sayısını artır
-        userData.messages++;
-        
-        // Check time difference between messages
-        if (Date.now() - userData.lastMessage > DIFF) {
-            // Reset user data if time difference is greater than the limit
-            clearTimeout(userData.timer);
-            userData.messages = 1;
-            userData.lastMessage = Date.now();
-        }
-        
-        // Son mesaj zamanını güncelle
-        userData.lastMessage = Date.now();
-            
-        // Set timer to reset user data after time period
-        userData.timer = setTimeout(() => {
-            usersMap.delete(message.author.id);
-        }, TIME);
-        
-        // Check if user has exceeded the message limit
-        if (userData.messages >= LIMIT) {
-            // Take action for spam
-            logger.info(`${message.author.tag} spam tespit edildi! Mesaj sayısı: ${userData.messages}/${LIMIT}`);
-            this.takeAction(message);
-            return true;
-        }
-        
-        // Update user data in collection
-        usersMap.set(message.author.id, userData);
-        return false;
     },
     
     /**
