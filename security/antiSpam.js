@@ -34,9 +34,9 @@ module.exports = {
         if (message.author.bot) return false;
         
         // Get anti-spam config
-        const LIMIT = config.antiSpam.maxMessages;
-        const TIME = config.antiSpam.timeWindow;
-        const DIFF = config.antiSpam.timeWindow;
+        const LIMIT = config.antiSpam.maxMessages || 5;
+        const TIME = config.antiSpam.timeWindow || 3000;
+        const DIFF = config.antiSpam.timeWindow || 3000;
         
         // Ignore if user has MANAGE_MESSAGES permission
         if (message.member.permissions.has('MANAGE_MESSAGES')) return false;
