@@ -72,8 +72,23 @@ module.exports = {
                 }
                 
                 if (categoryCommands.length) {
-                    const categoryEmoji = getCategoryEmoji(category);
-                    const categoryName = getCategoryName(category);
+                    // Kategori için emoji belirleme
+                    let categoryEmoji = config.emojis.info || 'ℹ️';
+                    if (category.toLowerCase().includes('moderation')) categoryEmoji = config.emojis.ban || '🔨';
+                    if (category.toLowerCase().includes('utility')) categoryEmoji = config.emojis.info || 'ℹ️';
+                    if (category.toLowerCase().includes('fun')) categoryEmoji = '🎮';
+                    if (category.toLowerCase().includes('music')) categoryEmoji = '🎵';
+                    if (category.toLowerCase().includes('economy')) categoryEmoji = '💰';
+                    if (category.toLowerCase().includes('level')) categoryEmoji = '📊';
+                    
+                    // Kategori için isim belirleme
+                    let categoryName = category.charAt(0).toUpperCase() + category.slice(1);
+                    if (category.toLowerCase().includes('moderation')) categoryName = 'Moderasyon';
+                    if (category.toLowerCase().includes('utility')) categoryName = 'Yardımcı';
+                    if (category.toLowerCase().includes('fun')) categoryName = 'Eğlence';
+                    if (category.toLowerCase().includes('music')) categoryName = 'Müzik';
+                    if (category.toLowerCase().includes('economy')) categoryName = 'Ekonomi';
+                    if (category.toLowerCase().includes('level')) categoryName = 'Seviye';
                     
                     embed.addField(
                         `${categoryEmoji} ${categoryName}`,

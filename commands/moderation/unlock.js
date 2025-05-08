@@ -3,10 +3,10 @@ const config = require('../../config.json');
 const logger = require('../../utils/logger');
 
 module.exports = {
-    name: 'unlock',
-    description: 'Unlock a previously locked channel',
-    usage: '[channel] [reason]',
-    aliases: ['unlockdown'],
+    name: 'kilitaç',
+    description: 'Kilitlenmiş bir kanalın kilidini açar',
+    usage: '[kanal] [sebep]',
+    aliases: ['unlock', 'unlockdown', 'kilit-aç', 'kilitkaldir'],
     guildOnly: true,
     permissions: [Permissions.FLAGS.MANAGE_CHANNELS],
     botPermissions: [Permissions.FLAGS.MANAGE_CHANNELS],
