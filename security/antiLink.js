@@ -66,9 +66,11 @@ module.exports = {
             }
             
             // Normal linkleri kontrol et
-            if (!URL_REGEX.test(message.content)) return false;
+            const hasLink = URL_REGEX.test(message.content);
+            if (!hasLink) return false;
             
             logger.debug(`Link tespit edildi: ${message.content}`);
+            logger.info(`${message.author.tag} kullanıcısından link algılandı: ${message.content}`);
             
             // Ignore users with permission to post links - Kontrol güçlendirildi
             try {

@@ -54,28 +54,29 @@ module.exports = {
             return false;
         }
         
+        // Mesaj sayısını artır
+        userData.messages++;
+        
         // Check time difference between messages
         if (Date.now() - userData.lastMessage > DIFF) {
             // Reset user data if time difference is greater than the limit
             clearTimeout(userData.timer);
             userData.messages = 1;
             userData.lastMessage = Date.now();
-            
-            // Set timer to reset user data after time period
-            userData.timer = setTimeout(() => {
-                usersMap.delete(message.author.id);
-            }, TIME);
-            
-            usersMap.set(message.author.id, userData);
-            return false;
         }
         
-        // Increment message count
-        userData.messages++;
+        // Son mesaj zamanını güncelle
+        userData.lastMessage = Date.now();
+            
+        // Set timer to reset user data after time period
+        userData.timer = setTimeout(() => {
+            usersMap.delete(message.author.id);
+        }, TIME);
         
         // Check if user has exceeded the message limit
         if (userData.messages >= LIMIT) {
             // Take action for spam
+            logger.info(`${message.author.tag} spam tespit edildi! Mesaj sayısı: ${userData.messages}/${LIMIT}`);
             this.takeAction(message);
             return true;
         }
