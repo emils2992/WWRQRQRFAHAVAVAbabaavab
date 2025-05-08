@@ -1,0 +1,89 @@
+{
+    "token": "", 
+    "prefix": ".",
+    "owners": [],
+    "logChannel": "",
+    "modRoles": [],
+    "adminRoles": [],
+    "muteRole": "",
+    "welcomeChannel": "",
+    "antiSpam": {
+        "enabled": true,
+        "maxMessages": 5,
+        "timeWindow": 3000,
+        "muteTime": 10
+    },
+    "antiRaid": {
+        "enabled": true,
+        "joinThreshold": 5,
+        "timeWindow": 10000,
+        "action": "lockdown" 
+    },
+    "antiLink": {
+        "enabled": true,
+        "action": "delete",
+        "muteDuration": 10,
+        "whitelist": []
+    },
+    "antiBots": {
+        "enabled": true,
+        "whitelistedBots": []
+    },
+    "newAccountFilter": {
+        "enabled": true,
+        "minAge": 7
+    },
+    "limits": {
+        "enabled": true,
+        "channelCreate": 3,
+        "channelDelete": 3,
+        "roleCreate": 3,
+        "roleDelete": 3,
+        "kick": 3,
+        "ban": 3,
+        "massTag": 3,
+        "timeWindow": 10000,
+        "action": "kick"
+    },
+    "permGuard": {
+        "enabled": true,
+        "protectedPermissions": [
+            "ADMINISTRATOR",
+            "BAN_MEMBERS",
+            "KICK_MEMBERS",
+            "MANAGE_CHANNELS",
+            "MANAGE_GUILD",
+            "MANAGE_ROLES",
+            "MANAGE_WEBHOOKS"
+        ]
+    },
+    "embedColors": {
+        "success": "#43B581",
+        "error": "#F04747",
+        "warning": "#FAA61A",
+        "info": "#7289DA"
+    },
+    "emojis": {
+        "success": "✅",
+        "error": "❌",
+        "warning": "⚠️",
+        "info": "ℹ️",
+        "loading": "🔄",
+        "ban": "🔨",
+        "kick": "👢",
+        "mute": "🔇",
+        "unmute": "🔊",
+        "lock": "🔒",
+        "unlock": "🔓",
+        "clear": "🧹",
+        "ping": "🏓",
+        "help": "❓",
+        "shield": "🛡️",
+        "link": "🔗",
+        "bot": "🤖",
+        "account": "👤",
+        "channel": "📝",
+        "role": "👑",
+        "security": "🔐"
+    }
+}
