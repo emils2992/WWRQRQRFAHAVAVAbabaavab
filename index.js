@@ -66,6 +66,7 @@ process.on('uncaughtException', error => {
 
 // Login to Discord with the bot token
 const TOKEN = process.env.DISCORD_TOKEN || config.token;
+console.log("Connecting with token:", TOKEN ? "Token exists" : "No token found");
 client.login(TOKEN)
     .then(() => {
         logger.info('Bot logged in successfully!');

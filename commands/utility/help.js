@@ -5,10 +5,10 @@ const fs = require('fs');
 const path = require('path');
 
 module.exports = {
-    name: 'help',
-    description: 'Display a list of available commands or info about a specific command',
-    usage: '[command]',
-    aliases: ['commands', 'h'],
+    name: 'yardım',
+    description: 'Kullanılabilir komutların listesini veya belirli bir komut hakkında bilgi gösterir',
+    usage: '[komut]',
+    aliases: ['help', 'commands', 'h', 'komutlar', 'bilgi', 'y'],
     cooldown: 5,
     /**
      * @param {Message} message 
@@ -18,6 +18,33 @@ module.exports = {
     async execute(message, args, client) {
         const prefix = config.prefix;
         const { commands } = client;
+        
+        // Emoji ve kategori isimlerini alma fonksiyonları
+        function getCategoryEmoji(category) {
+            category = category.toLowerCase();
+            
+            if (category.includes('moderation')) return config.emojis.ban || '🔨';
+            if (category.includes('utility')) return config.emojis.info || 'ℹ️';
+            if (category.includes('fun')) return '🎮';
+            if (category.includes('music')) return '🎵';
+            if (category.includes('economy')) return '💰';
+            if (category.includes('level')) return '📊';
+            
+            return config.emojis.info || 'ℹ️';
+        }
+        
+        function getCategoryName(category) {
+            category = category.toLowerCase();
+            
+            if (category.includes('moderation')) return 'Moderasyon';
+            if (category.includes('utility')) return 'Yardımcı';
+            if (category.includes('fun')) return 'Eğlence';
+            if (category.includes('music')) return 'Müzik';
+            if (category.includes('economy')) return 'Ekonomi';
+            if (category.includes('level')) return 'Seviye';
+            
+            return category.charAt(0).toUpperCase() + category.slice(1);
+        }
         
         // If no command is specified, show all commands
         if (!args.length) {
@@ -51,9 +78,9 @@ module.exports = {
             // Create embed
             const embed = new MessageEmbed()
                 .setColor(config.embedColors.info)
-                .setTitle(`${config.emojis.help} Astro Bot Commands`)
-                .setDescription(`Use \`${prefix}help [command]\` to get info about a specific command.`)
-                .setFooter({ text: `${client.commands.size} Total Commands` })
+                .setTitle(`${config.emojis.help} Astro Bot Komutları`)
+                .setDescription(`Bir komut hakkında daha fazla bilgi için \`${prefix}yardım [komut]\` kullanın.`)
+                .setFooter({ text: `Toplam ${client.commands.size} Komut` })
                 .setTimestamp();
             
             // Add categories with their commands
@@ -72,12 +99,29 @@ module.exports = {
                 }
                 
                 if (categoryCommands.length) {
+                    const categoryEmoji = getCategoryEmoji(category);
+                    const categoryName = getCategoryName(category);
+                    
                     embed.addField(
-                        category.charAt(0).toUpperCase() + category.slice(1),
+                        `${categoryEmoji} ${categoryName}`,
                         categoryCommands.join(', ')
                     );
                 }
             }
+            
+            // Add security features section
+            embed.addField(
+                `${config.emojis.shield} Güvenlik Özellikleri`,
+                [
+                    `${config.emojis.bot || '🤖'} **Bot Filtresi** - Bilinmeyen botların sunucunuza eklenmesini engeller`,
+                    `${config.emojis.account || '👤'} **Hesap Filtresi** - Yeni hesapların sunucuya girmesini engeller`,
+                    `${config.emojis.channel || '📝'} **Kanal Limitleri** - Kanal ekleme/silme işlemlerini sınırlar`,
+                    `${config.emojis.role || '👑'} **Rol Limitleri** - Rol oluşturma/silme işlemlerini sınırlar`,
+                    `${config.emojis.kick || '👢'} **Kick & Ban Limitleri** - Atma/yasaklama işlemlerini sınırlar`,
+                    `${config.emojis.security || '🔐'} **Yetki Koruma** - Rollere tehlikeli yetkilerin verilmesini engeller`,
+                    `${config.emojis.link || '🔗'} **URL Koruması** - Sunucunun özel URL'sini korur`
+                ].join('\n')
+            );
             
             return message.reply({ embeds: [embed] });
         }
@@ -90,20 +134,20 @@ module.exports = {
             return message.reply({
                 embeds: [new MessageEmbed()
                     .setColor(config.embedColors.error)
-                    .setDescription(`${config.emojis.error} That's not a valid command!`)
+                    .setDescription(`${config.emojis.error} Geçerli bir komut değil!`)
                 ]
             });
         }
         
         const embed = new MessageEmbed()
             .setColor(config.embedColors.info)
-            .setTitle(`Command: ${command.name}`);
+            .setTitle(`${config.emojis.help} Komut: ${command.name}`);
         
         if (command.description) embed.setDescription(command.description);
-        if (command.aliases) embed.addField('Aliases', command.aliases.join(', '));
-        if (command.usage) embed.addField('Usage', `${prefix}${command.name} ${command.usage}`);
+        if (command.aliases) embed.addField('Alternatif İsimler', command.aliases.join(', '));
+        if (command.usage) embed.addField('Kullanım', `${prefix}${command.name} ${command.usage}`);
         
-        embed.addField('Cooldown', `${command.cooldown || 3} second(s)`);
+        embed.addField('Bekleme Süresi', `${command.cooldown || 3} saniye`);
         
         message.reply({ embeds: [embed] });
     }

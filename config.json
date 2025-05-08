@@ -57,6 +57,10 @@
             "MANAGE_WEBHOOKS"
         ]
     },
+    "vanityUrlProtection": {
+        "enabled": true,
+        "action": "kick"
+    },
     "embedColors": {
         "success": "#43B581",
         "error": "#F04747",
