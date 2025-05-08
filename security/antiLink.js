@@ -251,11 +251,21 @@ module.exports = {
                     return;
                 }
                 
-                // Add mute role
-                await message.member.roles.add(muteRole);
-                
                 // Get mute duration from config (default: 10 minutes)
                 const muteDuration = (config.antiLink.muteDuration || 10) * 60 * 1000;
+                
+                // Discord.js v13 için timeout özelliğini kullan
+                try {
+                    // Timeout (zaman aşımı) kullan
+                    await message.member.timeout(muteDuration, 'Link paylaşımı yasaktır');
+                    logger.info(`${message.author.tag} kullanıcısı link paylaşımı nedeniyle ${config.antiLink.muteDuration || 10} dakika timeout aldı`);
+                } catch (timeoutError) {
+                    logger.error(`Timeout uygulanırken hata: ${timeoutError.message}`);
+                    
+                    // Eğer timeout çalışmazsa, klasik mute rol sistemi ile dene
+                    await message.member.roles.add(muteRole);
+                    logger.info(`${message.author.tag} kullanıcısı link paylaşımı nedeniyle ${config.antiLink.muteDuration || 10} dakika susturuldu (rol ile)`);
+                }
                 
                 // Add mute to database
                 database.addMute(message.guild.id, message.author.id, message.client.user.id, 'Link paylaşımı yasaktır', muteDuration);

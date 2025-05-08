@@ -67,13 +67,13 @@ module.exports = {
                 database.removeMute(message.guild.id, target.id);
                 
                 // Log
-                logger.moderation('TIMEOUT_KALDIR', message.author.tag, target.user.tag, reason);
+                logger.moderation('TIMEOUT_KALDIR', message.author.tag, target.user.tag, args.slice(1).join(' ') || 'Sebep belirtilmedi');
                 
                 // Başarılı mesaj
                 return message.reply({
                     embeds: [new MessageEmbed()
                         .setColor(config.embedColors.success)
-                        .setDescription(`${config.emojis.unmute} **${target.user.tag}** kullanıcısının Discord zaman aşımı kaldırıldı!\n**Sebep:** ${reason}`)
+                        .setDescription(`${config.emojis.unmute} **${target.user.tag}** kullanıcısının Discord zaman aşımı kaldırıldı!\n**Sebep:** ${args.slice(1).join(' ') || 'Sebep belirtilmedi'}`)
                     ]
                 });
             } catch (error) {
@@ -87,7 +87,7 @@ module.exports = {
             }
         }
         
-        // Sebep al (bu değişken yukarı taşındı)
+        // Sebep al
         const reason = args.slice(1).join(' ') || 'Sebep belirtilmedi';
         
         try {

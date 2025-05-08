@@ -119,11 +119,22 @@ module.exports = {
                 return;
             }
             
-            // Add mute role
-            await message.member.roles.add(muteRole);
+            // Discord.js v13 için timeout özelliğini kullan
+            const muteTime = config.antiSpam.muteTime * 60 * 1000; // Convert minutes to ms
+            
+            try {
+                // Timeout (zaman aşımı) kullan
+                await message.member.timeout(muteTime, 'Spam yapma nedeniyle otomatik susturma');
+                logger.info(`${message.author.tag} kullanıcısı spam nedeniyle ${config.antiSpam.muteTime} dakika timeout aldı`);
+            } catch (timeoutError) {
+                logger.error(`Timeout uygulanırken hata: ${timeoutError.message}`);
+                
+                // Eğer timeout çalışmazsa, klasik mute rol sistemi ile dene
+                await message.member.roles.add(muteRole);
+                logger.info(`${message.author.tag} kullanıcısı spam nedeniyle ${config.antiSpam.muteTime} dakika susturuldu (rol ile)`);
+            }
             
             // Add mute to database with duration
-            const muteTime = config.antiSpam.muteTime * 60 * 1000; // Convert minutes to ms
             database.addMute(message.guild.id, message.author.id, message.client.user.id, 'Spam yapma nedeniyle otomatik susturma', muteTime);
             
             // Send notification in channel

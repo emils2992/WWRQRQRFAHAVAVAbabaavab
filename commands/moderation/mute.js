@@ -154,8 +154,18 @@ module.exports = {
         }
         
         try {
-            // Kullanıcıya susturma rolünü ekle
-            await target.roles.add(muteRole);
+            // Discord.js v13 timeout özelliğini kullan
+            try {
+                // Timeout (zaman aşımı) uygula
+                await target.timeout(durationMs, reason);
+                logger.info(`${target.user.tag} kullanıcısı ${message.author.tag} tarafından ${duration || 'süresiz'} timeout aldı`);
+            } catch (timeoutError) {
+                logger.error(`Timeout uygulanırken hata: ${timeoutError.message}`);
+                
+                // Eğer timeout çalışmazsa, klasik mute rol sistemi ile dene
+                await target.roles.add(muteRole);
+                logger.info(`${target.user.tag} kullanıcısı ${message.author.tag} tarafından ${duration || 'süresiz'} susturuldu (rol ile)`);
+            }
             
             // Susturma işlemini veritabanına kaydet
             database.addMute(message.guild.id, target.id, message.author.id, reason, durationMs);
