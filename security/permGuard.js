@@ -95,9 +95,12 @@ module.exports = {
             return false;
         }
         
-        // YETKİ KORUMA SİSTEMİNDE ROL HİYERARŞİSİ GEÇERLİ DEĞİL
-        // Administrator yetkisine sahip olsa bile güvenlik için rol yetki koruması uygulanır
-        // Sadece sunucu sahibi ve bot sahibi atlanır
+        // ROL HİYERARŞİSİ KONTROLÜ
+        // Botun rolünden yüksek rolü varsa atla
+        if (member.roles.highest.position > member.guild.me.roles.highest.position) {
+            logger.info(`Rol koruma atlandı: ${member.user.tag} - Bottan daha yüksek role sahip`);
+            return false;
+        }
         
         // Handle dangerous permission
         this.handleDangerousRoleAddition(member.guild, member, role, dangerousPerms);
@@ -147,9 +150,12 @@ module.exports = {
                 return;
             }
             
-            // YETKİ KORUMA SİSTEMİNDE ROL HİYERARŞİSİ GEÇERLİ DEĞİL
-            // Administrator yetkisine sahip olsa bile güvenlik için rol yetki koruması uygulanır
-            // Sadece sunucu sahibi ve bot sahibi atlanır
+            // ROL HİYERARŞİSİ KONTROLÜ
+            // Botun rolünden yüksek rolü varsa atla
+            if (updaterMember.roles.highest.position > guild.me.roles.highest.position) {
+                logger.security('ROLE_HIERARCHY', `User ${updater.tag} with higher role than bot updated role permissions - Allowed`);
+                return; // Sadece botun rolünden yüksek rolü olanlar atlanır
+            }
             
             // Reset permissions on the role
             await role.setPermissions(role.permissions.remove(permissions));
@@ -222,9 +228,12 @@ module.exports = {
                 return;
             }
             
-            // YETKİ KORUMA SİSTEMİNDE ROL HİYERARŞİSİ GEÇERLİ DEĞİL
-            // Administrator yetkisine sahip olsa bile güvenlik için rol yetki koruması uygulanır
-            // Sadece sunucu sahibi ve bot sahibi atlanır
+            // ROL HİYERARŞİSİ KONTROLÜ
+            // Botun rolünden yüksek rolü varsa atla
+            if (updaterMember.roles.highest.position > guild.me.roles.highest.position) {
+                logger.security('ROLE_HIERARCHY', `User ${updater.tag} with higher role than bot assigned dangerous role - Allowed`);
+                return; // Sadece botun rolünden yüksek rolü olanlar atlanır
+            }
             
             // Remove the role
             await member.roles.remove(role.id);
