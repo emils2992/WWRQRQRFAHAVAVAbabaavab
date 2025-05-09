@@ -44,7 +44,10 @@ module.exports = {
         // If no dangerous permissions were added, allow
         if (addedPerms.length === 0) return false;
         
-        // Handle dangerous permissions
+        // Check audit logs to see who made the change
+        const guild = newRole.guild;
+        
+        // Handle dangerous permissions (this will check audit logs and verify if the updater has proper permissions)
         this.handleDangerousPerm(newRole.guild, newRole, addedPerms);
         return true;
     },
@@ -82,9 +85,18 @@ module.exports = {
         // If no dangerous permissions, allow
         if (dangerousPerms.length === 0) return false;
         
-        // Check if member is owner or admin, allow if so
-        if (member.guild.ownerId === member.id || 
-            config.owners.includes(member.id)) {
+        // Check if member is owner, allow if so
+        if (member.guild.ownerId === member.id) {
+            return false;
+        }
+        
+        // Check if member is in owners list, allow if so
+        if (config.owners.includes(member.id)) {
+            return false;
+        }
+        
+        // Check if member's highest role is higher than the bot's role, allow if so
+        if (member.roles.highest.position > member.guild.me.roles.highest.position) {
             return false;
         }
         
@@ -116,9 +128,30 @@ module.exports = {
                 updater = roleUpdateLog.executor;
             }
             
-            // If updater is owner or in the owners list, allow
-            if (updater && (guild.ownerId === updater.id || config.owners.includes(updater.id))) {
+            // Skip checks if no updater found (rare case)
+            if (!updater) {
+                // Reset permissions on the role without further checks
+                await role.setPermissions(role.permissions.remove(permissions));
                 return;
+            }
+            
+            // If updater is owner or in the owners list, allow
+            if (guild.ownerId === updater.id || config.owners.includes(updater.id)) {
+                return;
+            }
+            
+            // Get the member who did the update
+            const updaterMember = await guild.members.fetch(updater.id).catch(() => null);
+            if (!updaterMember) {
+                // Reset permissions on the role if updater is not in the guild anymore
+                await role.setPermissions(role.permissions.remove(permissions));
+                return;
+            }
+            
+            // Check if the updater's highest role is higher than the bot's role
+            if (updaterMember.roles.highest.position > guild.me.roles.highest.position) {
+                logger.security('ROLE_HIERARCHY', `User ${updater.tag} with higher role than bot updated role permissions`);
+                return; // Allow the change if updater has higher role than the bot
             }
             
             // Reset permissions on the role
@@ -172,9 +205,30 @@ module.exports = {
                 updater = roleUpdateLog.executor;
             }
             
-            // If updater is owner or in the owners list, allow
-            if (updater && (guild.ownerId === updater.id || config.owners.includes(updater.id))) {
+            // Skip checks if no updater found (rare case)
+            if (!updater) {
+                // Remove the role without further checks
+                await member.roles.remove(role.id);
                 return;
+            }
+            
+            // If updater is owner or in the owners list, allow
+            if (guild.ownerId === updater.id || config.owners.includes(updater.id)) {
+                return;
+            }
+            
+            // Get the member who did the update
+            const updaterMember = await guild.members.fetch(updater.id).catch(() => null);
+            if (!updaterMember) {
+                // Remove the role if updater is not in the guild anymore
+                await member.roles.remove(role.id);
+                return;
+            }
+            
+            // Check if the updater's highest role is higher than the bot's role
+            if (updaterMember.roles.highest.position > guild.me.roles.highest.position) {
+                logger.security('ROLE_HIERARCHY', `User ${updater.tag} with higher role than bot assigned dangerous role`);
+                return; // Allow the change if updater has higher role than the bot
             }
             
             // Remove the role

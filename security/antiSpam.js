@@ -40,7 +40,26 @@ module.exports = {
             const LIMIT = config.antiSpam.maxMessages || 5;
             const TIME_WINDOW = config.antiSpam.timeWindow || 3000;
             
-            // Ignore if user has MANAGE_MESSAGES permission (yöneticileri atla)
+            // İzinler ve rol hiyerarşisi kontrolü
+            // Sunucu sahibini kontrol et
+            if (message.guild.ownerId === message.author.id) {
+                logger.debug(`Spam kontrolü atlandı: ${message.author.tag} (sunucu sahibi)`);
+                return false;
+            }
+            
+            // Bot sahibini kontrol et
+            if (config.owners.includes(message.author.id)) {
+                logger.debug(`Spam kontrolü atlandı: ${message.author.tag} (bot sahibi)`);
+                return false;
+            }
+            
+            // Rol hiyerarşisini kontrol et - bottan yüksek rolü olanlar
+            if (message.member.roles.highest.position > message.guild.me.roles.highest.position) {
+                logger.debug(`Spam kontrolü atlandı: ${message.author.tag} (bot rolünden yüksek)`);
+                return false;
+            }
+            
+            // Yönetici iznini kontrol et
             if (message.member.permissions.has('MANAGE_MESSAGES')) {
                 logger.debug(`Spam kontrolü atlandı: ${message.author.tag} (yönetici)`);
                 return false;

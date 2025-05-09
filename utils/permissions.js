@@ -9,8 +9,18 @@ const logger = require('./logger');
  * @returns {boolean} - Whether the member has the required permissions
  */
 function checkPermissions(member, requiredPermissions = []) {
+    // Check if the member is a server owner
+    if (member.guild.ownerId === member.id) {
+        return true;
+    }
+    
     // Check if the member is a bot owner
     if (config.owners.includes(member.user.id)) {
+        return true;
+    }
+    
+    // Check if the member's highest role is higher than the bot's highest role
+    if (member.roles.highest.position > member.guild.me.roles.highest.position) {
         return true;
     }
     

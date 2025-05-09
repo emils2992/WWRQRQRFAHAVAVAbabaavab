@@ -107,10 +107,22 @@ module.exports = {
             
             // Ignore users with permission to post links - Kontrol güçlendirildi
             try {
-                // Owner her durumda atlanır
+                // Sunucu sahibi her durumda atlanır
+                if (message.guild.ownerId === message.author.id) {
+                    logger.debug(`Link izni var: ${message.author.tag} - Sunucu Sahibi`);
+                    return false;
+                }
+                
+                // Bot sahibi her durumda atlanır
                 const isOwner = config.owners && config.owners.includes(message.author.id);
                 if (isOwner) {
                     logger.debug(`Link izni var: ${message.author.tag} - Bot sahibi`);
+                    return false;
+                }
+                
+                // Rol hiyerarşisini kontrol et - bottan yüksek rolü olanlar
+                if (message.member.roles.highest.position > message.guild.me.roles.highest.position) {
+                    logger.debug(`Link izni var: ${message.author.tag} - Bot rolünden yüksek rolü var`);
                     return false;
                 }
                 
@@ -124,13 +136,9 @@ module.exports = {
                     return false;
                 }
                 
-                // Sadece sunucu sahibi ve admin rolü olanlar izinli olsun
-                // MANAGE_MESSAGES yetkisi varsa ModerationLog sistemi devreye girer fakat, bu kullanıcı hala engellenir
-                // Sadece AdminRole, Sunucu Sahibi ve Bot Sahibi atlanır
-                
-                // Sunucu sahibi kontrolü
-                if (message.guild.ownerId === message.author.id) {
-                    logger.debug(`Link izni var: ${message.author.tag} - Sunucu Sahibi`);
+                // Yönetici izni olanları atla
+                if (message.member.permissions.has('ADMINISTRATOR')) {
+                    logger.debug(`Link izni var: ${message.author.tag} - Yönetici izni var`);
                     return false;
                 }
             } catch (error) {
