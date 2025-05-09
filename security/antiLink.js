@@ -9,8 +9,41 @@ const URL_REGEX = /(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0
 // Discord davet regex
 const DISCORD_INVITE_REGEX = /(discord\.(gg|io|me|li)|discordapp\.com\/invite|discord\.com\/invite)\/[a-zA-Z0-9-]+/gi;
 
-// Collection for cooldowns
+// Collection for warned users - gelişmiş uyarı sayacı için
 const warnedUsers = new Collection();
+
+// Link uyarı bilgilerini güncelleyen zamanlayıcı
+// Her 30 dakikada bir, eski uyarıları temizle
+setInterval(() => {
+    const now = Date.now();
+    const TIMEOUT = 30 * 60 * 1000; // 30 dakika
+    
+    let temizlenen = 0;
+    
+    // Her kullanıcı için eski uyarıları temizle
+    warnedUsers.forEach((userData, userId) => {
+        // Son uyarıdan bu yana 30 dakika geçtiyse, sayacı sıfırla
+        if (now - userData.lastWarning > TIMEOUT) {
+            warnedUsers.delete(userId);
+            temizlenen++;
+        } else if (userData.warningTimestamps) {
+            // Eski uyarıları temizle
+            const eskiUzunluk = userData.warningTimestamps.length;
+            userData.warningTimestamps = userData.warningTimestamps.filter(time => now - time < TIMEOUT);
+            const yeniUzunluk = userData.warningTimestamps.length;
+            
+            if (eskiUzunluk !== yeniUzunluk) {
+                userData.count = userData.warningTimestamps.length;
+                warnedUsers.set(userId, userData);
+                temizlenen++;
+            }
+        }
+    });
+    
+    if (temizlenen > 0) {
+        logger.debug(`Link uyarı sayaçları temizlendi: ${temizlenen} kullanıcı`);
+    }
+}, 5 * 60 * 1000); // 5 dakikada bir kontrol et
 
 module.exports = {
     /**
@@ -19,12 +52,6 @@ module.exports = {
      */
     init(client) {
         logger.info('Anti-link module initialized');
-        
-        // Clean up warned users every 30 minutes
-        setInterval(() => {
-            const now = Date.now();
-            warnedUsers.sweep(timestamp => now - timestamp > 1800000); // 30 minutes
-        }, 1800000);
     },
     
     /**

@@ -6,7 +6,7 @@ module.exports = {
     name: 'at',
     description: 'Bir kullanıcıyı sunucudan atar',
     usage: '<kullanıcı> [sebep]',
-    aliases: ['kick', 'k'],
+    aliases: ['kick'],
     args: true,
     argsCount: 1,
     guildOnly: true,
