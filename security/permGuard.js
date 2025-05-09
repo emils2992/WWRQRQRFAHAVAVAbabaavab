@@ -95,10 +95,9 @@ module.exports = {
             return false;
         }
         
-        // Check if member's highest role is higher than the bot's role, allow if so
-        if (member.roles.highest.position > member.guild.me.roles.highest.position) {
-            return false;
-        }
+        // YETKİ KORUMA SİSTEMİNDE ROL HİYERARŞİSİ GEÇERLİ DEĞİL
+        // Administrator yetkisine sahip olsa bile güvenlik için rol yetki koruması uygulanır
+        // Sadece sunucu sahibi ve bot sahibi atlanır
         
         // Handle dangerous permission
         this.handleDangerousRoleAddition(member.guild, member, role, dangerousPerms);
@@ -148,11 +147,9 @@ module.exports = {
                 return;
             }
             
-            // Check if the updater's highest role is higher than the bot's role
-            if (updaterMember.roles.highest.position > guild.me.roles.highest.position) {
-                logger.security('ROLE_HIERARCHY', `User ${updater.tag} with higher role than bot updated role permissions`);
-                return; // Allow the change if updater has higher role than the bot
-            }
+            // YETKİ KORUMA SİSTEMİNDE ROL HİYERARŞİSİ GEÇERLİ DEĞİL
+            // Administrator yetkisine sahip olsa bile güvenlik için rol yetki koruması uygulanır
+            // Sadece sunucu sahibi ve bot sahibi atlanır
             
             // Reset permissions on the role
             await role.setPermissions(role.permissions.remove(permissions));
@@ -225,11 +222,9 @@ module.exports = {
                 return;
             }
             
-            // Check if the updater's highest role is higher than the bot's role
-            if (updaterMember.roles.highest.position > guild.me.roles.highest.position) {
-                logger.security('ROLE_HIERARCHY', `User ${updater.tag} with higher role than bot assigned dangerous role`);
-                return; // Allow the change if updater has higher role than the bot
-            }
+            // YETKİ KORUMA SİSTEMİNDE ROL HİYERARŞİSİ GEÇERLİ DEĞİL
+            // Administrator yetkisine sahip olsa bile güvenlik için rol yetki koruması uygulanır
+            // Sadece sunucu sahibi ve bot sahibi atlanır
             
             // Remove the role
             await member.roles.remove(role.id);

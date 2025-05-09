@@ -28,15 +28,15 @@ module.exports = {
             // Anti-spam kontrolü
             if (config.antiSpam && config.antiSpam.enabled) {
                 logger.info(`Anti-spam kontrol ediliyor: ${message.author.tag} - Mesaj: ${message.content.substring(0, 30)}`);
-                // Mod veya adminleri kontrol et
-                if (!message.member.permissions.has('MANAGE_MESSAGES')) {
+                // Adminleri kontrol et - mesaj modüllerinde rol hiyerarşisi önemli değil
+                if (!message.member.permissions.has('ADMINISTRATOR')) {
                     const spamDetected = antiSpam.checkMessage(message);
                     if (spamDetected) {
                         logger.security('SPAM', `${message.author.tag} tarafından spam tespit edildi`);
                         return;
                     }
-                } else if (isDeveloper) {
-                    logger.info(`Anti-spam atlandı: ${message.author.tag} (yönetici yetkileri var)`);
+                } else {
+                    logger.info(`Anti-spam atlandı: ${message.author.tag} (administrator yetkileri var)`);
                 }
             }
             
@@ -55,15 +55,15 @@ module.exports = {
                 if (hasLink) {
                     logger.info(`Link içeriği tespit edildi: ${message.content}`);
                     
-                    // Moderatörleri atla
-                    if (!message.member.permissions.has('MANAGE_MESSAGES')) {
+                    // Adminleri kontrol et - mesaj modüllerinde rol hiyerarşisi önemli değil
+                    if (!message.member.permissions.has('ADMINISTRATOR')) {
                         const linkDetected = antiLink.checkMessage(message);
                         if (linkDetected) {
                             logger.security('LINK', `${message.author.tag} tarafından yasak link paylaşıldı`);
                             return;
                         }
-                    } else if (isDeveloper) {
-                        logger.info(`Anti-link atlandı: ${message.author.tag} (yönetici yetkileri var)`);
+                    } else {
+                        logger.info(`Anti-link atlandı: ${message.author.tag} (administrator yetkileri var)`);
                     }
                 }
             }
