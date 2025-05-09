@@ -1,4 +1,4 @@
-const { Role, Client, AuditLogEvent } = require('discord.js');
+const { Role, Client } = require('discord.js');
 const limits = require('../security/limits');
 const logger = require('../utils/logger');
 
@@ -16,7 +16,7 @@ module.exports = {
             // Fetch audit logs to see who created the role
             const auditLogs = await guild.fetchAuditLogs({
                 limit: 1,
-                type: AuditLogEvent.RoleCreate
+                type: 30 // AuditLogEvent.ROLE_CREATE
             }).catch(error => {
                 logger.error(`Rol oluşturma audit log alınırken hata: ${error.message}`);
                 return null;

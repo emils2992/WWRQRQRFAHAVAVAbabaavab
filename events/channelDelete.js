@@ -1,4 +1,4 @@
-const { GuildChannel, Client, AuditLogEvent } = require('discord.js');
+const { GuildChannel, Client } = require('discord.js');
 const limits = require('../security/limits');
 const logger = require('../utils/logger');
 
@@ -19,7 +19,7 @@ module.exports = {
             // Fetch audit logs to see who deleted the channel
             const auditLogs = await guild.fetchAuditLogs({
                 limit: 1,
-                type: AuditLogEvent.ChannelDelete
+                type: 12 // AuditLogEvent.CHANNEL_DELETE
             }).catch(error => {
                 logger.error(`Kanal silme audit log alınırken hata: ${error.message}`);
                 return null;

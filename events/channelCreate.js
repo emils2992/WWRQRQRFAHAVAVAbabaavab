@@ -1,4 +1,4 @@
-const { GuildChannel, Client, AuditLogEvent } = require('discord.js');
+const { GuildChannel, Client } = require('discord.js');
 const limits = require('../security/limits');
 const logger = require('../utils/logger');
 
@@ -19,7 +19,7 @@ module.exports = {
             // Fetch audit logs to see who created the channel
             const auditLogs = await guild.fetchAuditLogs({
                 limit: 1,
-                type: AuditLogEvent.ChannelCreate
+                type: 10 // AuditLogEvent.CHANNEL_CREATE
             }).catch(error => {
                 logger.error(`Kanal oluşturma audit log alınırken hata: ${error.message}`);
                 return null;

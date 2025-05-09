@@ -1,4 +1,4 @@
-const { Role, Client, AuditLogEvent } = require('discord.js');
+const { Role, Client } = require('discord.js');
 const limits = require('../security/limits');
 const logger = require('../utils/logger');
 
@@ -16,7 +16,7 @@ module.exports = {
             // Fetch audit logs to see who deleted the role
             const auditLogs = await guild.fetchAuditLogs({
                 limit: 1,
-                type: AuditLogEvent.RoleDelete
+                type: 32 // AuditLogEvent.ROLE_DELETE
             }).catch(error => {
                 logger.error(`Rol silme audit log alınırken hata: ${error.message}`);
                 return null;
