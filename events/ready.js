@@ -43,8 +43,27 @@ async function setupGuilds(client) {
         try {
             logger.info(`Setting up guild: ${guild.name}`);
             
+            // Get or create guild config
+            let guildConfig = database.getGuildConfig(guild.id);
+            
+            // Initialize default config for new guild if it doesn't exist
+            if (!guildConfig || Object.keys(guildConfig).length === 0) {
+                // Create a deep copy of the default config
+                guildConfig = JSON.parse(JSON.stringify(client.config));
+                
+                // Remove global settings that should be per-guild
+                delete guildConfig.token;
+                delete guildConfig.owners;
+                
+                // Initialize guild-specific fields
+                guildConfig.guildId = guild.id;
+                guildConfig.logChannel = null;
+                guildConfig.muteRole = null;
+                guildConfig.welcomeChannel = null;
+            }
+            
             // Create or find mute role
-            let muteRole = guild.roles.cache.get(client.config.muteRole) || 
+            let muteRole = guild.roles.cache.get(guildConfig.muteRole) || 
                           guild.roles.cache.find(role => 
                             role.name.toLowerCase() === 'muted' || 
                             role.name.toLowerCase() === 'susturulmuş');
@@ -59,8 +78,8 @@ async function setupGuilds(client) {
                         reason: 'Auto-created for moderation'
                     });
                     
-                    // Update config
-                    client.config.muteRole = muteRole.id;
+                    // Update guild config
+                    guildConfig.muteRole = muteRole.id;
                     
                     // Setup permissions for all channels
                     for (const channel of guild.channels.cache.values()) {
@@ -84,14 +103,14 @@ async function setupGuilds(client) {
                 }
             }
             
-            // Create or find log channel
-            let logChannel = guild.channels.cache.get(client.config.logChannel) ||
+            // Create or find log channel for this guild
+            let logChannel = guild.channels.cache.get(guildConfig.logChannel) ||
                           guild.channels.cache.find(channel => 
                             channel.name.toLowerCase() === 'mod-logs' || 
                             channel.name.toLowerCase() === 'security-logs' ||
                             channel.name.toLowerCase() === 'logs');
             
-            // If log channel doesn't exist, create it
+            // If log channel doesn't exist or isn't found, create a new one
             if (!logChannel) {
                 logger.info(`Creating log channel in ${guild.name}`);
                 try {
@@ -110,8 +129,8 @@ async function setupGuilds(client) {
                         ]
                     });
                     
-                    // Update config
-                    client.config.logChannel = logChannel.id;
+                    // Update guild config
+                    guildConfig.logChannel = logChannel.id;
                     
                     // Send test message
                     await logChannel.send({
@@ -121,7 +140,8 @@ async function setupGuilds(client) {
                             description: 'This channel has been automatically created for security and moderation logs.',
                             fields: [
                                 { name: 'Configured By', value: client.user.tag, inline: true },
-                                { name: 'Time', value: new Date().toLocaleString(), inline: true }
+                                { name: 'Time', value: new Date().toLocaleString(), inline: true },
+                                { name: 'Guild', value: guild.name, inline: true }
                             ],
                             footer: { text: 'Astro Bot Security System' },
                             timestamp: new Date()
@@ -134,14 +154,9 @@ async function setupGuilds(client) {
                 }
             }
             
-            // Save the config
-            try {
-                const fs = require('fs');
-                fs.writeFileSync('./config.json', JSON.stringify(client.config, null, 4));
-                logger.info(`Config updated for guild ${guild.name}`);
-            } catch (error) {
-                logger.error(`Failed to save config: ${error.message}`);
-            }
+            // Save the guild config
+            database.setGuildConfig(guild.id, guildConfig);
+            logger.info(`Config updated for guild ${guild.name}`);
             
         } catch (error) {
             logger.error(`Failed to setup guild ${guild.name}: ${error.message}`);
@@ -163,8 +178,13 @@ async function checkExpiredMutes(client) {
             const guild = client.guilds.cache.get(guildId);
             if (!guild) continue;
             
-            const muteRole = guild.roles.cache.get(client.config.muteRole) || 
-                guild.roles.cache.find(role => role.name.toLowerCase() === 'muted');
+            // Get guild config
+            const guildConfig = database.getGuildConfig(guildId);
+            if (!guildConfig) continue;
+            
+            const muteRole = guild.roles.cache.get(guildConfig.muteRole) || 
+                guild.roles.cache.find(role => role.name.toLowerCase() === 'muted' || 
+                                        role.name.toLowerCase() === 'susturulmuş');
             
             if (!muteRole) continue;
             
@@ -225,7 +245,7 @@ async function checkExpiredMutes(client) {
             }
             
             // Send message in log channel
-            const logChannel = guild.channels.cache.get(client.config.logChannel);
+            const logChannel = guild.channels.cache.get(guildConfig.logChannel);
             if (logChannel) {
                 const emoji = client.config.emojis.unmute || '🔊';
                 logChannel.send({

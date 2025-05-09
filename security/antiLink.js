@@ -61,8 +61,11 @@ module.exports = {
      */
     checkMessage(message) {
         try {
-            // Skip if anti-link is disabled
-            if (!config.antiLink || !config.antiLink.enabled) return false;
+            // Sunucu yapılandırmasını al
+            const guildConfig = database.getGuildConfig(message.guild.id);
+            
+            // Skip if anti-link is disabled or guild config doesn't exist
+            if (!guildConfig || !guildConfig.antiLink || !guildConfig.antiLink.enabled) return false;
             
             // Ignore bot messages
             if (message.author.bot) return false;
@@ -87,8 +90,8 @@ module.exports = {
                     return false;
                 }
                 
-                logger.security('DISCORD_INVITE', `Discord daveti yakalandı: ${discordInvites[0]} by ${message.author.tag}`);
-                this.takeAction(message, config.antiLink.action || 'delete');
+                logger.security('DISCORD_INVITE', `Discord daveti yakalandı: ${discordInvites[0]} by ${message.author.tag} in ${message.guild.name}`);
+                this.takeAction(message, guildConfig.antiLink.action || 'delete');
                 return true;
             }
             
@@ -161,7 +164,7 @@ module.exports = {
             
             // Check whitelist
             try {
-                const whitelist = config.antiLink.whitelist || [];
+                const whitelist = (guildConfig && guildConfig.antiLink && guildConfig.antiLink.whitelist) || [];
                 // URL'yi kontrol et
                 const matches = message.content.match(URL_REGEX);
                 if (matches) {
@@ -179,8 +182,8 @@ module.exports = {
                             
                             // Discord davetlerini doğrudan engelle
                             if (domain.includes('discord.gg') || domain.includes('discord.com/invite')) {
-                                logger.security('DISCORD_DAVETI', `${message.author.tag} kullanıcısı Discord daveti paylaştı: ${domain}`);
-                                this.takeAction(message, config.antiLink.action || 'delete');
+                                logger.security('DISCORD_DAVETI', `${message.author.tag} kullanıcısı Discord daveti paylaştı: ${domain} in ${message.guild.name}`);
+                                this.takeAction(message, guildConfig.antiLink.action || 'delete');
                                 return true;
                             }
                             
@@ -204,10 +207,10 @@ module.exports = {
             }
             
             // Check action type
-            const action = config.antiLink.action || 'delete';
-            logger.security('LINK_ENGELLENDI', `${message.author.tag} tarafından paylaşılan link engellendi: ${message.content.slice(0, 100)}`);
+            const action = (guildConfig && guildConfig.antiLink && guildConfig.antiLink.action) || 'delete';
+            logger.security('LINK_ENGELLENDI', `${message.author.tag} tarafından paylaşılan link engellendi: ${message.content.slice(0, 100)} in ${message.guild.name}`);
             
-            // Take action based on config
+            // Take action based on guild config
             this.takeAction(message, action);
             return true;
         } catch (error) {
@@ -222,16 +225,20 @@ module.exports = {
      * @param {string} action - The action to take (delete, warn, mute)
      */
     async takeAction(message, action) {
-        logger.security('LINK', `${message.author.tag} tarafından yasak link paylaşıldı`);
+        logger.security('LINK', `${message.author.tag} tarafından yasak link paylaşıldı - ${message.guild.name}`);
         
         try {
             // Delete the message
             await message.delete();
             
+            // Sunucu yapılandırmasını al
+            const guildConfig = database.getGuildConfig(message.guild.id);
+            if (!guildConfig) return;  // Yapılandırma yoksa işlemi sonlandır
+            
             // Link uyarı sayısı yönetimi - 3 kez tekrarlanırsa ceza uygulanır
             // Kullanıcı daha önce uyarılmışsa uyarı sayısını artır, yoksa 1 olarak başlat
             
-            const MAX_WARNINGS = config.antiLink.maxWarnings || 3; // En fazla uyarı sayısı (3. uyarıdan sonra mute)
+            const MAX_WARNINGS = (guildConfig.antiLink && guildConfig.antiLink.maxWarnings) || 3; // En fazla uyarı sayısı (3. uyarıdan sonra mute)
             const uyariSuresi = 30 * 60 * 1000; // 30 dakika içindeki uyarıları say
             const now = Date.now();
             
@@ -327,7 +334,7 @@ module.exports = {
                 }, 5000);
                 
                 // Send log to log channel
-                const logChannel = message.guild.channels.cache.get(config.logChannel);
+                const logChannel = message.guild.channels.cache.get(guildConfig.logChannel);
                 if (logChannel) {
                     logChannel.send({
                         embeds: [new MessageEmbed()
@@ -344,29 +351,29 @@ module.exports = {
                     });
                 }
             } else if (action === 'mute') {
-                // Get mute role
-                const muteRole = message.guild.roles.cache.get(config.muteRole) || 
+                // Get mute role from guild config
+                const muteRole = message.guild.roles.cache.get(guildConfig.muteRole) || 
                                 message.guild.roles.cache.find(role => role.name.toLowerCase() === 'muted' || role.name.toLowerCase() === 'susturulmuş');
                 
                 if (!muteRole) {
-                    logger.error('Failed to mute user for link posting: no mute role found');
+                    logger.error(`Failed to mute user ${message.author.tag} for link posting in ${message.guild.name}: no mute role found`);
                     return;
                 }
                 
-                // Get mute duration from config (default: 10 minutes)
-                const muteDuration = (config.antiLink.muteDuration || 10) * 60 * 1000;
+                // Get mute duration from guild config (default: 10 minutes)
+                const muteDuration = (guildConfig.antiLink && guildConfig.antiLink.muteDuration || 10) * 60 * 1000;
                 
                 // Discord.js v13 için timeout özelliğini kullan
                 try {
                     // Timeout (zaman aşımı) kullan
                     await message.member.timeout(muteDuration, 'Link paylaşımı yasaktır');
-                    logger.info(`${message.author.tag} kullanıcısı link paylaşımı nedeniyle ${config.antiLink.muteDuration || 10} dakika timeout aldı`);
+                    logger.info(`${message.author.tag} kullanıcısı link paylaşımı nedeniyle ${guildConfig.antiLink.muteDuration || 10} dakika timeout aldı`);
                 } catch (timeoutError) {
                     logger.error(`Timeout uygulanırken hata: ${timeoutError.message}`);
                     
                     // Eğer timeout çalışmazsa, klasik mute rol sistemi ile dene
                     await message.member.roles.add(muteRole);
-                    logger.info(`${message.author.tag} kullanıcısı link paylaşımı nedeniyle ${config.antiLink.muteDuration || 10} dakika susturuldu (rol ile)`);
+                    logger.info(`${message.author.tag} kullanıcısı link paylaşımı nedeniyle ${guildConfig.antiLink.muteDuration || 10} dakika susturuldu (rol ile)`);
                 }
                 
                 // Add mute to database
@@ -376,7 +383,7 @@ module.exports = {
                 const muteMsg = await message.channel.send({
                     embeds: [new MessageEmbed()
                         .setColor(config.embedColors.warning)
-                        .setDescription(`${config.emojis.mute} <@${message.author.id}>, link paylaşımından dolayı ${config.antiLink.muteDuration || 10} dakika susturuldunuz!`)
+                        .setDescription(`${config.emojis.mute} <@${message.author.id}>, link paylaşımından dolayı ${guildConfig.antiLink && guildConfig.antiLink.muteDuration || 10} dakika susturuldunuz!`)
                     ]
                 });
                 
@@ -386,7 +393,7 @@ module.exports = {
                 }, 5000);
                 
                 // Send log to log channel
-                const logChannel = message.guild.channels.cache.get(config.logChannel);
+                const logChannel = message.guild.channels.cache.get(guildConfig.logChannel);
                 if (logChannel) {
                     logChannel.send({
                         embeds: [new MessageEmbed()
@@ -396,7 +403,7 @@ module.exports = {
                             .addFields(
                                 { name: 'Kullanıcı', value: `<@${message.author.id}>`, inline: true },
                                 { name: 'Kanal', value: `<#${message.channel.id}>`, inline: true },
-                                { name: 'Süre', value: `${config.antiLink.muteDuration || 10} dakika`, inline: true },
+                                { name: 'Süre', value: `${guildConfig.antiLink && guildConfig.antiLink.muteDuration || 10} dakika`, inline: true },
                                 { name: 'Link içeriği', value: `\`\`\`${message.content.slice(0, 900)}\`\`\`` }
                             )
                             .setTimestamp()

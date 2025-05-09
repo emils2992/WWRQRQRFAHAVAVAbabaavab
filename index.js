@@ -68,6 +68,35 @@ process.on('uncaughtException', error => {
     console.error('Uncaught exception:', error);
 });
 
+// Create event handler for when bot joins a new guild
+client.on('guildCreate', async (guild) => {
+    logger.info(`Bot added to a new guild: ${guild.name} (${guild.id})`);
+    
+    // Get or create new guild config
+    let guildConfig = database.getGuildConfig(guild.id);
+    
+    // If guild doesn't have a config yet, create a default one
+    if (!guildConfig || Object.keys(guildConfig).length === 0) {
+        // Create a deep copy of the default config
+        guildConfig = JSON.parse(JSON.stringify(config));
+        
+        // Remove global settings that should be per-guild
+        delete guildConfig.token;
+        delete guildConfig.owners;
+        
+        // Initialize guild-specific fields
+        guildConfig.guildId = guild.id;
+        guildConfig.logChannel = null;
+        guildConfig.muteRole = null;
+        guildConfig.welcomeChannel = null;
+        
+        // Save the config
+        database.setGuildConfig(guild.id, guildConfig);
+        
+        logger.info(`Created new configuration for guild: ${guild.name}`);
+    }
+});
+
 // Login to Discord with the bot token
 const TOKEN = process.env.DISCORD_TOKEN || config.token;
 console.log("Connecting with token:", TOKEN ? "Token exists" : "No token found");

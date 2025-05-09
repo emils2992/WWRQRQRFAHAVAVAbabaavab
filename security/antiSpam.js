@@ -28,17 +28,20 @@ module.exports = {
      */
     checkMessage(message) {
         try {
-            // If anti-spam is disabled, return
-            if (!config.antiSpam || !config.antiSpam.enabled) return false;
+            // Sunucu yapılandırmasını al
+            const guildConfig = database.getGuildConfig(message.guild.id);
+            
+            // If anti-spam is disabled in this guild, return
+            if (!guildConfig || !guildConfig.antiSpam || !guildConfig.antiSpam.enabled) return false;
             
             // Ignore bot messages
             if (message.author.bot) return false;
             
             // GELİŞTİRİLMİŞ SPAM TESPİTİ - Discord.js v13 için optimize edildi
             
-            // Get anti-spam config with default values
-            const LIMIT = config.antiSpam.maxMessages || 5;
-            const TIME_WINDOW = config.antiSpam.timeWindow || 3000;
+            // Get anti-spam config from guild config with default values
+            const LIMIT = guildConfig.antiSpam.maxMessages || 5;
+            const TIME_WINDOW = guildConfig.antiSpam.timeWindow || 3000;
             
             // İzinler ve rol hiyerarşisi kontrolü
             // Sunucu sahibini kontrol et
@@ -143,8 +146,12 @@ module.exports = {
      * @param {Message} message 
      */
     async takeAction(message) {
+        // Sunucu yapılandırmasını al
+        const guildConfig = database.getGuildConfig(message.guild.id);
+        if (!guildConfig) return;
+        
         // Log spam detection
-        logger.security('SPAM_TESPIT', `${message.author.tag} kullanıcısı spam yapıyor`);
+        logger.security('SPAM_TESPIT', `${message.author.tag} kullanıcısı ${message.guild.name} sunucusunda spam yapıyor`);
         
         try {
             // Delete recent messages from the user
@@ -156,7 +163,7 @@ module.exports = {
             }
             
             // Get mute role
-            const muteRole = message.guild.roles.cache.get(config.muteRole) || 
+            const muteRole = message.guild.roles.cache.get(guildConfig.muteRole) || 
                             message.guild.roles.cache.find(role => role.name.toLowerCase() === 'muted');
             
             // If mute role doesn't exist, try to create it
@@ -173,18 +180,18 @@ module.exports = {
             }
             
             // Discord.js v13 için timeout özelliğini kullan
-            const muteTime = config.antiSpam.muteTime * 60 * 1000; // Convert minutes to ms
+            const muteTime = guildConfig.antiSpam.muteTime * 60 * 1000; // Convert minutes to ms
             
             try {
                 // Timeout (zaman aşımı) kullan
                 await message.member.timeout(muteTime, 'Spam yapma nedeniyle otomatik susturma');
-                logger.info(`${message.author.tag} kullanıcısı spam nedeniyle ${config.antiSpam.muteTime} dakika timeout aldı`);
+                logger.info(`${message.author.tag} kullanıcısı ${message.guild.name} sunucusunda spam nedeniyle ${guildConfig.antiSpam.muteTime} dakika timeout aldı`);
             } catch (timeoutError) {
                 logger.error(`Timeout uygulanırken hata: ${timeoutError.message}`);
                 
                 // Eğer timeout çalışmazsa, klasik mute rol sistemi ile dene
                 await message.member.roles.add(muteRole);
-                logger.info(`${message.author.tag} kullanıcısı spam nedeniyle ${config.antiSpam.muteTime} dakika susturuldu (rol ile)`);
+                logger.info(`${message.author.tag} kullanıcısı ${message.guild.name} sunucusunda spam nedeniyle ${guildConfig.antiSpam.muteTime} dakika susturuldu (rol ile)`);
             }
             
             // Add mute to database with duration
@@ -194,7 +201,7 @@ module.exports = {
             message.channel.send({
                 embeds: [new MessageEmbed()
                     .setColor(config.embedColors.warning)
-                    .setDescription(`${config.emojis.mute} <@${message.author.id}> spam yaptığı için ${config.antiSpam.muteTime} dakika susturuldu.`)
+                    .setDescription(`${config.emojis.mute} <@${message.author.id}> spam yaptığı için ${guildConfig.antiSpam.muteTime} dakika susturuldu.`)
                 ]
             });
             
@@ -204,7 +211,7 @@ module.exports = {
                     embeds: [new MessageEmbed()
                         .setColor(config.embedColors.warning)
                         .setTitle(`${config.emojis.mute} ${message.guild.name} sunucusunda susturuldunuz`)
-                        .setDescription(`Spam yaptığınız için ${config.antiSpam.muteTime} dakika otomatik olarak susturuldunuz.`)
+                        .setDescription(`Spam yaptığınız için ${guildConfig.antiSpam.muteTime} dakika otomatik olarak susturuldunuz.`)
                         .setFooter({ text: 'Lütfen sunucu kurallarına saygı gösterin ve gelecekte spam yapmaktan kaçının.' })
                         .setTimestamp()
                     ]
@@ -213,8 +220,8 @@ module.exports = {
                 // Ignore if user has DMs closed
             }
             
-            // Send log to log channel
-            const logChannel = message.guild.channels.cache.get(config.logChannel);
+            // Send log to log channel - Use guild specific log channel
+            const logChannel = message.guild.channels.cache.get(guildConfig.logChannel);
             if (logChannel) {
                 logChannel.send({
                     embeds: [new MessageEmbed()
@@ -225,7 +232,7 @@ module.exports = {
                             { name: 'Kullanıcı', value: `<@${message.author.id}>`, inline: true },
                             { name: 'Kullanıcı ID', value: message.author.id, inline: true },
                             { name: 'Kanal', value: `<#${message.channel.id}>`, inline: true },
-                            { name: 'Süre', value: `${config.antiSpam.muteTime} dakika`, inline: true }
+                            { name: 'Süre', value: `${guildConfig.antiSpam.muteTime} dakika`, inline: true }
                         )
                         .setThumbnail(message.author.displayAvatarURL({ dynamic: true }))
                         .setTimestamp()
