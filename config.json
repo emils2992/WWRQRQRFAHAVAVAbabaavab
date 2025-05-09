@@ -31,16 +31,17 @@
         "whitelist": []
     },
     "antiBots": {
-        "enabled": true,
+        "enabled": false,
         "whitelistedBots": []
     },
     "newAccountFilter": {
         "enabled": true,
-        "minAge": 7
+        "minAge": 7,
+        "minAccountAge": 7
     },
     "limits": {
         "enabled": true,
-        "channelCreate": 2,
+        "channelCreate": 4,
         "channelDelete": 2,
         "roleCreate": 2,
         "roleDelete": 2,
